@@ -5,7 +5,7 @@ import cv2
 import timm
 import os
 import logging
-from typing import Optional
+from typing import Optional, Tuple, Generator, List
 
 import torch
 import torch.nn as nn
@@ -16,6 +16,7 @@ import config
 from utils import (
     validar_imagen, validar_video,
     generar_reporte_imagen, generar_reporte_video, generar_reporte_error,
+    generar_grafico_temporal,
     Timer,
 )
 
@@ -32,45 +33,28 @@ logger = logging.getLogger(__name__)
 # 🧠 Modelos de Deep Learning
 # ==========================================
 
-
-class CNNDetectionResNet(nn.Module):
-    """
-    Modelo ResNet50 personalizado para detección de imágenes sintéticas.
-    Detecta artefactos de GANs y modelos de difusión.
-    """
-
-    def __init__(self):
-        super(CNNDetectionResNet, self).__init__()
-        self.model = models.resnet50(pretrained=False)
-        num_ftrs = self.model.fc.in_features
-        self.model.fc = nn.Linear(num_ftrs, 1)
-
-    def forward(self, x):
-        return self.model(x)
-
-
 class ModelManager:
     """
     Gestor centralizado de modelos con caché y manejo robusto de errores.
     """
 
     def __init__(self):
-        self.modelo_imagen: Optional[CNNDetectionResNet] = None
+        self.modelo_imagen: Optional[nn.Module] = None
         self.modelo_video: Optional[nn.Module] = None
         self.dispositivo = torch.device(config.DEVICE)
 
-        # Transformaciones de imagen
+        # Transformaciones de imagen (definidas en config)
         self.transform_imagen = transforms.Compose([
-            transforms.Resize(256),
-            transforms.CenterCrop(config.IMAGE_SIZE),
+            transforms.Resize(config.TRANSFORMS_RESIZE),
+            transforms.CenterCrop(config.TRANSFORMS_CROP),
             transforms.ToTensor(),
             transforms.Normalize(
-                [0.485, 0.456, 0.406],
-                [0.229, 0.224, 0.225],
+                config.TRANSFORMS_MEAN,
+                config.TRANSFORMS_STD,
             ),
         ])
 
-        # Transformaciones de video
+        # Transformaciones de video (Xception defaults)
         self.transform_video = transforms.Compose([
             transforms.Resize((config.VIDEO_SIZE, config.VIDEO_SIZE)),
             transforms.ToTensor(),
@@ -85,8 +69,8 @@ class ModelManager:
         self.modelo_imagen = self._cargar_modelo_imagen()
         self.modelo_video = self._cargar_modelo_video()
 
-    def _cargar_modelo_imagen(self) -> Optional[CNNDetectionResNet]:
-        """Carga el modelo de detección de imágenes."""
+    def _cargar_modelo_imagen(self) -> Optional[nn.Module]:
+        """Carga el modelo de detección de imágenes (ResNet50 Modificado)."""
         logger.info("🖼️ Cargando modelo de imágenes...")
 
         try:
@@ -97,32 +81,37 @@ class ModelManager:
                 logger.warning("📥 Modo demostración activado para imágenes")
                 return None
 
-            modelo = CNNDetectionResNet()
-            checkpoint = torch.load(
-                config.MODEL_IMAGE_PATH,
-                map_location=self.dispositivo,
-            )
+            # 1. Cargar arquitectura base ResNet50
+            # Importante: pretrained=False porque usaremos pesos específicos
+            model = models.resnet50(pretrained=False)
 
-            # Manejar diferentes formatos de checkpoint
-            if isinstance(checkpoint, dict) and "model" in checkpoint:
-                state_dict = checkpoint["model"]
-            else:
-                state_dict = checkpoint
+            # 2. MODIFICACIÓN CRÍTICA: Cambiar la última capa para 1 sola salida (Real vs Fake)
+            # El modelo original de Wang et al. usa 1 neurona de salida.
+            num_ftrs = model.fc.in_features
+            model.fc = nn.Linear(num_ftrs, 1)
 
-            # Corregir nombres de llaves si es necesario
+            # 3. Cargar los pesos
+            # Usar map_location para evitar errores de CPU/GPU
+            logger.info(f"📂 Leyendo pesos desde {config.MODEL_IMAGE_PATH}")
+            state_dict = torch.load(config.MODEL_IMAGE_PATH, map_location=self.dispositivo)
+
+            # Manejo de diccionarios de pesos
+            if "model" in state_dict:
+                state_dict = state_dict["model"]
+
+            # Limpieza de llaves (si vienen con prefix 'module.')
             new_state_dict = {}
             for k, v in state_dict.items():
-                nombre = k.replace("module.", "")
-                if not nombre.startswith("model."):
-                    nombre = "model." + nombre
-                new_state_dict[nombre] = v
+                k = k.replace("module.", "")
+                new_state_dict[k] = v
 
-            modelo.load_state_dict(new_state_dict)
-            modelo.to(self.dispositivo)
-            modelo.eval()
+            model.load_state_dict(new_state_dict, strict=True)
+
+            model.to(self.dispositivo)
+            model.eval()
 
             logger.info("✅ Modelo de imágenes cargado exitosamente")
-            return modelo
+            return model
 
         except Exception as e:
             logger.error(
@@ -133,7 +122,7 @@ class ModelManager:
             return None
 
     def _cargar_modelo_video(self) -> Optional[nn.Module]:
-        """Carga el modelo de detección de deepfakes en video."""
+        """Carga el modelo de detección de deepfakes en video (Xception)."""
         logger.info("🎥 Cargando modelo de video...")
 
         try:
@@ -168,21 +157,12 @@ model_manager = ModelManager()
 def analizar_imagen(imagen_input) -> str:
     """
     Analiza una imagen para detectar si es sintética o manipulada.
-
-    Args:
-        imagen_input: Array numpy de la imagen
-
-    Returns:
-        HTML con el reporte del análisis
     """
     logger.info("📸 Iniciando análisis de imagen...")
 
     # Validación de entrada
     if imagen_input is None:
-        return generar_reporte_error(
-            "No se proporcionó ninguna imagen",
-            "warning",
-        )
+        return generar_reporte_error("No se proporcionó ninguna imagen", "warning")
 
     es_valida, mensaje = validar_imagen(imagen_input)
     if not es_valida:
@@ -208,6 +188,7 @@ def analizar_imagen(imagen_input) -> str:
             # Inferencia
             with torch.no_grad():
                 output = model_manager.modelo_imagen(img_tensor)
+                # Aplicar Sigmoid para obtener probabilidad (0-1)
                 probabilidad_fake = torch.sigmoid(output).item() * 100
 
             # Determinar clasificación
@@ -239,84 +220,88 @@ def analizar_imagen(imagen_input) -> str:
         )
 
 
-def analizar_video(video_path: str, progress=gr.Progress()) -> str:
+def analizar_video(video_path: str, progress=gr.Progress()) -> Generator[Tuple[str, str, Optional[Image.Image], Optional[Image.Image]], None, None]:
     """
     Analiza un video para detectar deepfakes.
-
-    Args:
-        video_path: Ruta al archivo de video
-        progress: Objeto de Gradio para mostrar progreso
+    Función generadora que emite actualizaciones de estado.
 
     Returns:
-        HTML con el reporte del análisis
+        Generator yielding: (HTML Report, Log Text, Timeline Plot, Culprit Frame)
     """
     logger.info("🎬 Iniciando análisis de video...")
 
+    # Estados iniciales
+    log_text = "🚀 Iniciando proceso..."
+    yield "", log_text, None, None
+
     # Validación de entrada
     if video_path is None:
-        return generar_reporte_error(
-            "No se proporcionó ningún video",
-            "warning",
-        )
+        yield generar_reporte_error("No se proporcionó ningún video", "warning"), "❌ Error: Sin video", None, None
+        return
 
     es_valido, mensaje = validar_video(video_path)
     if not es_valido:
-        return generar_reporte_error(mensaje, "error")
+        yield generar_reporte_error(mensaje, "error"), f"❌ Error: {mensaje}", None, None
+        return
 
     # Verificar disponibilidad del modelo
     if model_manager.modelo_video is None:
-        return generar_reporte_error(
-            "El modelo de análisis de video no está disponible. "
-            "Por favor, verifica la instalación.",
-            "error",
-        )
+        yield generar_reporte_error("Modelo no disponible", "error"), "❌ Error: Modelo no cargado", None, None
+        return
 
     try:
         with Timer() as timer:
             # Abrir video
+            log_text += "\n📂 Abriendo archivo de video..."
+            yield "", log_text, None, None
+
             cap = cv2.VideoCapture(video_path)
             if not cap.isOpened():
-                return generar_reporte_error(
-                    "No se pudo abrir el archivo de video",
-                    "error",
-                )
+                yield generar_reporte_error("Error abriendo video", "error"), "❌ Error al abrir archivo", None, None
+                return
 
-            # Obtener propiedades del video
+            # Metadatos
             frames_totales = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
             fps = cap.get(cv2.CAP_PROP_FPS)
             duracion = frames_totales / fps if fps and fps > 0 else 0
 
-            # Validar duración
+            # Validación duración
             if duracion > config.MAX_VIDEO_DURATION_SECONDS:
                 cap.release()
-                return generar_reporte_error(
-                    f"El video es demasiado largo ({duracion:.1f}s). "
-                    f"Máximo: {config.MAX_VIDEO_DURATION_SECONDS}s",
-                    "warning",
-                )
+                msg = f"Video demasiado largo ({duracion:.1f}s)"
+                yield generar_reporte_error(msg, "warning"), f"⚠️ {msg}", None, None
+                return
+
+            log_text += f"\nℹ️ Video cargado: {frames_totales} frames, {duracion:.1f}s"
+            log_text += "\n👀 Cargando detector de rostros..."
+            yield "", log_text, None, None
 
             # Detector de rostros
             face_cascade = cv2.CascadeClassifier(
                 cv2.data.haarcascades + "haarcascade_frontalface_default.xml"
             )
 
-            # Análisis frame por frame
-            predicciones = []
-            frames_analizados = 0
+            # Variables de seguimiento
+            predicciones = [] # Lista de (frame_idx, prob)
+            frames_con_rostro = 0
+            max_fake_prob = 0.0
+            culprit_frame = None
 
-            logger.info(
-                f"📊 Analizando video: {frames_totales} frames, {duracion:.1f}s"
-            )
-
-            # Usar stride adaptativo basado en duración
+            # Configurar stride
             stride = config.VIDEO_FRAME_STRIDE
-            if duracion > 60:  # Si es mayor a 1 minuto, aumentar stride
+            if duracion > 60:
                 stride = 60
 
-            for i in progress.tqdm(
-                range(0, frames_totales, stride),
-                desc="🔍 Escaneando rostros...",
-            ):
+            log_text += f"\n🧠 Iniciando análisis (Stride: {stride})..."
+            yield "", log_text, None, None
+
+            # Bucle de análisis con gr.Progress
+            for i in progress.tqdm(range(0, frames_totales, stride), desc="🔍 Analizando frames..."):
+                # Actualizar log cada cierto tiempo para no saturar
+                if i % (stride * 5) == 0:
+                    status = f"⏳ Procesando frame {i}/{frames_totales} ({(i/frames_totales)*100:.0f}%)"
+                    yield "", log_text + "\n" + status, None, None
+
                 cap.set(cv2.CAP_PROP_POS_FRAMES, i)
                 ret, frame = cap.read()
                 if not ret:
@@ -327,13 +312,21 @@ def analizar_video(video_path: str, progress=gr.Progress()) -> str:
                 faces = face_cascade.detectMultiScale(gray, 1.1, 4)
 
                 if len(faces) > 0:
-                    frames_analizados += 1
+                    frames_con_rostro += 1
 
-                    # Extraer el primer rostro detectado
+                    # Procesar el primer rostro
                     (x, y, w, h) = faces[0]
-                    cara = frame[y:y + h, x:x + w]
 
-                    # Convertir y transformar
+                    # Margen de seguridad para el recorte
+                    margin = int(w * 0.2)
+                    x1 = max(0, x - margin)
+                    y1 = max(0, y - margin)
+                    x2 = min(frame.shape[1], x + w + margin)
+                    y2 = min(frame.shape[0], y + h + margin)
+
+                    cara = frame[y1:y2, x1:x2]
+
+                    # Transformar
                     cara_rgb = cv2.cvtColor(cara, cv2.COLOR_BGR2RGB)
                     cara_pil = Image.fromarray(cara_rgb)
                     cara_tensor = model_manager.transform_video(cara_pil).unsqueeze(0)
@@ -342,270 +335,125 @@ def analizar_video(video_path: str, progress=gr.Progress()) -> str:
                     # Inferencia
                     with torch.no_grad():
                         output = model_manager.modelo_video(cara_tensor)
-                        prob_fake = (
-                            torch.softmax(output, dim=1)[0][1].item() * 100.0
-                        )
-                        predicciones.append(prob_fake)
+                        prob_fake = torch.softmax(output, dim=1)[0][1].item() * 100
+
+                        predicciones.append((i, prob_fake))
+
+                        # Guardar el frame más sospechoso
+                        if prob_fake > max_fake_prob:
+                            max_fake_prob = prob_fake
+                            culprit_frame = cara_pil
 
             cap.release()
 
-            # Validar resultados
-            if len(predicciones) < config.MIN_FACES_REQUIRED:
-                return generar_reporte_error(
-                    "No se detectaron suficientes rostros para un análisis confiable "
-                    f"(frames con rostro: {frames_analizados}). "
-                    "Asegúrate de que el video contenga rostros claros y bien iluminados.",
-                    "warning",
-                )
+            if frames_con_rostro < config.MIN_FACES_REQUIRED:
+                msg = f"Insuficientes rostros detectados ({frames_con_rostro})"
+                yield generar_reporte_error(msg, "warning"), f"⚠️ {msg}", None, None
+                return
+
+            # Generar resultados finales
+            log_text += "\n✅ Análisis finalizado. Generando reporte..."
+            yield "", log_text, None, None
 
             # Calcular promedio
-            promedio_fake = sum(predicciones) / len(predicciones)
+            probs_values = [p[1] for p in predicciones]
+            promedio_fake = sum(probs_values) / len(probs_values)
             es_deepfake = promedio_fake > config.VIDEO_THRESHOLD
 
-            logger.info(
-                f"✅ Análisis completado: "
-                f"{'DEEPFAKE' if es_deepfake else 'REAL'} ({promedio_fake:.2f}%)"
+            # Generar gráfico
+            timeline_plot = generar_grafico_temporal(predicciones)
+
+            # Generar reporte HTML
+            reporte_html = generar_reporte_video(
+                es_deepfake=es_deepfake,
+                probabilidad=promedio_fake,
+                frames_totales=frames_totales,
+                frames_analizados=frames_con_rostro,
+                duracion=duracion,
+                tiempo_proceso=timer.duracion
             )
 
-        # Generar reporte
-        return generar_reporte_video(
-            es_deepfake=es_deepfake,
-            probabilidad=promedio_fake,
-            frames_totales=frames_totales,
-            frames_analizados=frames_analizados,
-            duracion=duracion,
-            tiempo_proceso=timer.duracion,
-        )
+            final_log = log_text + f"\n🏁 Completado: {'DEEPFAKE' if es_deepfake else 'REAL'} ({promedio_fake:.1f}%)"
+
+            yield reporte_html, final_log, timeline_plot, culprit_frame
 
     except Exception as e:
-        logger.error(
-            f"❌ Error durante el análisis de video: {e}",
-            exc_info=True,
-        )
-        return generar_reporte_error(
-            f"Ocurrió un error durante el análisis del video: {str(e)}",
-            "error",
-        )
+        logger.error(f"❌ Error en video: {e}", exc_info=True)
+        yield generar_reporte_error(str(e), "error"), f"❌ Error crítico: {str(e)}", None, None
 
 
 # ==========================================
 # 🖥️ Interfaz Gradio
 # ==========================================
 
-with gr.Blocks(title="UIDE Forense AI") as demo:
+css_custom = """
+.gradio-container { font-family: 'Inter', sans-serif; }
+"""
+
+with gr.Blocks(title="UIDE Forense AI", css=css_custom) as demo:
     gr.Markdown(
         """
-        ### Sistema Avanzado de Detección de Deepfakes y Contenido Sintético
-        
-        Plataforma basada en **Inteligencia Artificial** para análisis forense de medios digitales.
-        Utiliza redes neuronales profundas (ResNet50 y XceptionNet) para identificar manipulaciones 
-        y contenido generado por IA.
+        # 🕵️ UIDE Forense AI
+        ### Sistema de Detección de Contenido Sintético y Deepfakes
         """
     )
 
-    gr.Markdown("---")
-
     with gr.Tabs():
 
-        # ============ TAB 1: IMÁGENES ============
+        # TAB 1: Imágenes
         with gr.TabItem("🖼️ Análisis de Imágenes"):
-            gr.Markdown(
-                """
-                ### 📸 Detector de Imágenes Sintéticas
-                
-                Identifica imágenes generadas por IA (DALL-E, Midjourney, Stable Diffusion) o manipuladas digitalmente.
-                El sistema analiza artefactos microscópicos invisibles al ojo humano.
-                """
-            )
+            with gr.Row():
+                with gr.Column():
+                    img_input = gr.Image(label="Imagen a analizar", type="numpy", sources=["upload", "clipboard"])
+                    btn_img = gr.Button("🔍 Analizar Imagen", variant="primary")
+                with gr.Column():
+                    img_output = gr.HTML(label="Resultados")
 
+            btn_img.click(analizar_imagen, inputs=img_input, outputs=img_output)
+
+        # TAB 2: Video
+        with gr.TabItem("🎥 Análisis de Video (Deepfakes)"):
             with gr.Row():
                 with gr.Column(scale=1):
-                    img_input = gr.Image(
-                        label="📤 Sube tu imagen aquí",
-                        type="numpy",
-                        height=400,
-                        sources=["upload", "clipboard"],
+                    vid_input = gr.Video(label="Video a analizar", sources=["upload"])
+                    btn_vid = gr.Button("▶️ Iniciar Análisis Profundo", variant="primary")
+
+                    log_output = gr.Textbox(
+                        label="📜 Log de Estado",
+                        lines=10,
+                        interactive=False,
+                        info="Progreso en tiempo real"
                     )
 
+                with gr.Column(scale=1):
+                    vid_report_output = gr.HTML(label="Informe Forense")
+                    
                     with gr.Row():
-                        btn_img = gr.Button(
-                            "🔍 Iniciar Análisis Forense",
-                            variant="primary",
-                            size="lg",
-                            scale=2,
-                        )
-                        btn_clear_img = gr.ClearButton(
-                            [img_input],
-                            value="🗑️ Limpiar",
-                            size="lg",
-                            scale=1,
-                        )
+                        timeline_output = gr.Image(label="📈 Línea de Tiempo (Probabilidad Fake)", type="pil")
+                        culprit_output = gr.Image(label="📸 Frame Más Sospechoso", type="pil")
 
-                    gr.Markdown(
-                        """
-                        **💡 Formatos soportados:** JPG, PNG, WebP, BMP
-                        
-                        **⚡ Tiempo estimado:** < 1 segundo
-                        """
-                    )
-
-                with gr.Column(scale=1):
-                    img_output = gr.HTML(label="📊 Informe de Análisis")
-
-            # Información adicional expandible
-            with gr.Accordion("ℹ️ ¿Cómo funciona este análisis?", open=False):
-                gr.Markdown(
-                    """
-                    El modelo **CNNDetection** utiliza una red ResNet50 entrenada para detectar:
-                    
-                    - 🎨 **Imágenes GAN**: Generadas por redes generativas adversarias
-                    - 🌊 **Modelos de Difusión**: Como Stable Diffusion, DALL-E 3
-                    - ✂️ **Manipulaciones**: Ediciones con Photoshop u otras herramientas
-                    
-                    El análisis busca patrones estadísticos anómalos en la distribución de píxeles,
-                    artefactos de compresión inconsistentes y características espectrales únicas de contenido sintético.
-                    """
-                )
-
-            # Evento de click
-            btn_img.click(
-                fn=analizar_imagen,
-                inputs=img_input,
-                outputs=img_output,
-            )
-
-        # ============ TAB 2: VIDEOS ============
-        with gr.TabItem("🎥 Análisis de Videos"):
-            gr.Markdown(
-                """
-                ### 🎬 Detector de Deepfakes
-                
-                Analiza videos para identificar rostros manipulados mediante técnicas de deepfake.
-                Detecta inconsistencias temporales y artefactos de síntesis facial.
-                """
-            )
-
-            with gr.Row():
-                with gr.Column(scale=1):
-                    vid_input = gr.Video(
-                        label="📤 Sube tu video aquí",
-                        height=400,
-                        sources=["upload"],
-                    )
-
-                    with gr.Row():
-                        btn_vid = gr.Button(
-                            "▶️ Analizar Deepfakes",
-                            variant="primary",
-                            size="lg",
-                            scale=2,
-                        )
-                        btn_clear_vid = gr.ClearButton(
-                            [vid_input],
-                            value="🗑️ Limpiar",
-                            size="lg",
-                            scale=1,
-                        )
-
-                    gr.Markdown(
-                        f"""
-                        **💡 Formatos soportados:** MP4, AVI, MOV, MKV, WebM
-                        
-                        **⚙️ Limitaciones:** Máximo {config.MAX_VIDEO_SIZE_MB}MB, {config.MAX_VIDEO_DURATION_SECONDS//60} minutos
-                        
-                        **⚡ Tiempo estimado:** Variable según duración (30s - 5min)
-                        """
-                    )
-
-                with gr.Column(scale=1):
-                    vid_output = gr.HTML(label="📊 Informe de Análisis")
-
-            # Información adicional
-            with gr.Accordion("ℹ️ ¿Cómo funciona este análisis?", open=False):
-                gr.Markdown(
-                    """
-                    El modelo **XceptionNet** analiza cada frame del video para detectar:
-                    
-                    - 👤 **Face Swap**: Intercambio de rostros
-                    - 🎭 **Síntesis facial**: Rostros completamente generados
-                    - 🔄 **Reenactment**: Transferencia de expresiones faciales
-                    - 🗣️ **Lip Sync**: Manipulación de movimientos labiales
-                    
-                    El sistema utiliza **muestreo inteligente** para optimizar el rendimiento,
-                    analizando frames clave donde es más probable detectar inconsistencias.
-                    
-                    ⚠️ **Nota**: El análisis requiere que el video contenga rostros visibles y bien iluminados.
-                    """
-                )
-
-            # Evento de click
             btn_vid.click(
                 fn=analizar_video,
                 inputs=vid_input,
-                outputs=vid_output,
+                outputs=[vid_report_output, log_output, timeline_output, culprit_output]
             )
 
-        # ============ TAB 3: INFORMACIÓN ============
-        with gr.TabItem("📚 Acerca de"):
+        # TAB 3: Acerca de
+        with gr.TabItem("ℹ️ Acerca de"):
             gr.Markdown(
                 """
-                # 🎓 UIDE Forense AI
+                ### UIDE Forense AI
+                Desarrollado para la detección de manipulación digital.
                 
-                ## 🔬 Proyecto Académico
-                
-                Sistema de detección de deepfakes y contenido sintético desarrollado como parte 
-                de la investigación en **Visión por Computadora e Inteligencia Artificial** en la 
-                Universidad Internacional del Ecuador.
-                
-                ---
-                
-                ## 👥 Equipo de Desarrollo
-                
-                - **Anthony Perez** - Investigador Principal
-                - **Bruno Ortega** - Desarrollador ML
-                - **Manuel Pacheco** - Ingeniero de Software
-                
-                ---
-                
-                ## 🛠️ Tecnologías Utilizadas
-                
-                | Componente | Tecnología |
-                |------------|------------|
-                | **Framework UI** | Gradio 4.0+ |
-                | **Deep Learning** | PyTorch, Torchvision |
-                | **Modelos** | ResNet50, XceptionNet |
-                | **Visión Computacional** | OpenCV, PIL |
-                | **Datasets** | FaceForensics++, CNNDetection |
-                
-                ---
-                
-                ## ⚖️ Consideraciones Éticas
-                
-                > **⚠️ IMPORTANTE**: Esta herramienta tiene fines exclusivamente académicos y de investigación.
-                > Los resultados son probabilísticos y deben ser verificados por expertos forenses.
-                > No debe usarse como única evidencia en contextos legales.
-                
-                ---
-                
-                <div style="text-align: center; padding: 20px; background: linear-gradient(135deg, #667eea15 0%, #764ba215 100%); border-radius: 10px; margin-top: 20px;">
-                    <p style="font-size: 0.9em; color: #666; margin: 0;">
-                        © 2025 UIDE - Todos los derechos reservados
-                    </p>
-                </div>
+                **Modelos:**
+                - Imágenes: ResNet50 (Wang et al.) - Detección de artefactos GAN/Difusión.
+                - Video: XceptionNet (FaceForensics++) - Detección de deepfakes faciales.
                 """
             )
 
-# ==========================================
-# 🚀 Punto de Entrada
-# ==========================================
-
 if __name__ == "__main__":
-    logger.info("🚀 Iniciando UIDE Forense AI...")
-
-    demo.launch(
-        server_name="0.0.0.0",  # Accesible desde red local
+    demo.queue().launch(
+        server_name="0.0.0.0",
         server_port=7860,
-        share=False,            # Cambiar a True para crear link público temporal
-        show_error=True,
-        quiet=False,
+        show_error=True
     )

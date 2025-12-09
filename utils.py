@@ -5,8 +5,15 @@ Utilidades y funciones auxiliares para UIDE Forense AI
 import os
 import time
 import logging
-from typing import Optional, Tuple
+from typing import Optional, Tuple, List
 from PIL import Image
+import io
+
+# Matplotlib backend setup for headless environment
+import matplotlib
+matplotlib.use('Agg')
+import matplotlib.pyplot as plt
+
 import config
 
 # Configurar logging
@@ -76,7 +83,7 @@ def validar_video(video_path: str) -> Tuple[bool, str]:
 
 
 # ==========================================
-# 🎨 Generación de Reportes HTML
+# 🎨 Generación de Reportes HTML y Gráficos
 # ==========================================
 
 def generar_gauge_svg(probabilidad: float, color: str, tamaño: int = 200) -> str:
@@ -131,6 +138,48 @@ def generar_stat_card(valor, etiqueta: str, icono: str = "📊") -> str:
         </div>
     </div>
     """
+
+
+def generar_grafico_temporal(predicciones_por_frame: List[Tuple[int, float]]) -> Optional[Image.Image]:
+    """
+    Genera un gráfico de línea temporal de probabilidades de fake.
+
+    Args:
+        predicciones_por_frame: Lista de tuplas (frame_idx, probabilidad)
+
+    Returns:
+        Imagen PIL del gráfico o None si hay error
+    """
+    try:
+        if not predicciones_por_frame:
+            return None
+
+        frames = [p[0] for p in predicciones_por_frame]
+        probs = [p[1] for p in predicciones_por_frame]
+
+        plt.figure(figsize=(10, 4))
+        plt.plot(frames, probs, color=config.COLOR_FAKE, linewidth=2, label="Probabilidad Fake")
+        plt.axhline(y=config.VIDEO_THRESHOLD, color='gray', linestyle='--', alpha=0.5, label="Umbral")
+
+        plt.fill_between(frames, probs, alpha=0.1, color=config.COLOR_FAKE)
+
+        plt.title("Línea de Tiempo de Detección de Deepfakes")
+        plt.xlabel("Frame")
+        plt.ylabel("Probabilidad (%)")
+        plt.ylim(0, 105) # Un poco más de 100 para margen
+        plt.legend()
+        plt.grid(True, alpha=0.3)
+        plt.tight_layout()
+
+        buf = io.BytesIO()
+        plt.savefig(buf, format='png', dpi=100)
+        plt.close() # Liberar memoria
+        buf.seek(0)
+
+        return Image.open(buf)
+    except Exception as e:
+        logger.error(f"Error generando gráfico: {e}", exc_info=True)
+        return None
 
 
 def generar_reporte_imagen(es_fake: bool, probabilidad: float, 

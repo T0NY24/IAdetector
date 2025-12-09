@@ -33,6 +33,12 @@ SUPPORTED_VIDEO_FORMATS = ['.mp4', '.avi', '.mov', '.mkv', '.webm']
 IMAGE_THRESHOLD = 50.0  # Umbral de clasificación (%)
 IMAGE_SIZE = 224
 
+# Transformaciones estándar (CNNDetection)
+TRANSFORMS_RESIZE = 256
+TRANSFORMS_CROP = 224
+TRANSFORMS_MEAN = [0.485, 0.456, 0.406]
+TRANSFORMS_STD = [0.229, 0.224, 0.225]
+
 # Video
 VIDEO_FRAME_STRIDE = 30  # Analizar 1 frame cada N frames
 VIDEO_SIZE = 299
