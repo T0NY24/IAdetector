@@ -182,25 +182,49 @@ def generar_grafico_temporal(predicciones_por_frame: List[Tuple[int, float]]) ->
         return None
 
 
+def _determinar_estado(probabilidad: float, tipo: str = "imagen") -> Tuple[str, str, str, float]:
+    """
+    Determina el estado, color, icono y confianza visual basado en probabilidad.
+    """
+    if probabilidad > 60:
+        # FAKE
+        color = config.COLOR_FAKE
+        icono = "🚨"
+        diagnostico = "POSIBLE MANIPULACIÓN DETECTADA" if tipo == "imagen" else "DEEPFAKE DETECTADO"
+        confianza_visual = probabilidad
+    elif probabilidad > 40:
+        # SOSPECHOSO
+        color = config.COLOR_WARNING
+        icono = "⚠️"
+        diagnostico = "SOSPECHOSO / INCIERTO"
+        confianza_visual = probabilidad
+    else:
+        # REAL
+        color = config.COLOR_REAL
+        icono = "✅"
+        diagnostico = "CONTENIDO AUTÉNTICO" if tipo == "imagen" else "VIDEO AUTÉNTICO"
+        confianza_visual = 100 - probabilidad
+
+    return color, icono, diagnostico, confianza_visual
+
+
 def generar_reporte_imagen(es_fake: bool, probabilidad: float, 
                           ancho: int, alto: int, tiempo_proceso: float) -> str:
     """
     Genera el reporte HTML completo para análisis de imagen.
     """
-    color = config.COLOR_FAKE if es_fake else config.COLOR_REAL
-    icono = "🚨" if es_fake else "✅"
-    diagnostico = "POSIBLE MANIPULACIÓN DETECTADA" if es_fake else "CONTENIDO AUTÉNTICO"
-    confianza = probabilidad if es_fake else (100 - probabilidad)
+    # Usar lógica de 3 estados
+    color, icono, diagnostico, confianza_visual = _determinar_estado(probabilidad, "imagen")
     
-    gauge = generar_gauge_svg(confianza, color)
-    barra = generar_barra_progreso(confianza, color)
+    gauge = generar_gauge_svg(confianza_visual, color)
+    barra = generar_barra_progreso(confianza_visual, color)
     
     # Cards de estadísticas
     stats_html = f"""
     <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 15px; margin: 20px 0;">
         {generar_stat_card(f"{ancho}x{alto}", "Resolución", "🖼️")}
         {generar_stat_card(f"{tiempo_proceso:.2f}s", "Tiempo", "⚡")}
-        {generar_stat_card(f"{confianza:.1f}%", "Confianza", "🎯")}
+        {generar_stat_card(f"{confianza_visual:.1f}%", "Confianza", "🎯")}
     </div>
     """
     
@@ -255,13 +279,11 @@ def generar_reporte_video(es_deepfake: bool, probabilidad: float,
     """
     Genera el reporte HTML completo para análisis de video.
     """
-    color = config.COLOR_FAKE if es_deepfake else config.COLOR_REAL
-    icono = "🚨" if es_deepfake else "✅"
-    diagnostico = "DEEPFAKE DETECTADO" if es_deepfake else "VIDEO AUTÉNTICO"
-    confianza = probabilidad if es_deepfake else (100 - probabilidad)
+    # Usar lógica de 3 estados
+    color, icono, diagnostico, confianza_visual = _determinar_estado(probabilidad, "video")
     
-    gauge = generar_gauge_svg(confianza, color)
-    barra = generar_barra_progreso(confianza, color)
+    gauge = generar_gauge_svg(confianza_visual, color)
+    barra = generar_barra_progreso(confianza_visual, color)
     
     # Cards de estadísticas
     stats_html = f"""
@@ -269,7 +291,7 @@ def generar_reporte_video(es_deepfake: bool, probabilidad: float,
         {generar_stat_card(f"{duracion:.1f}s", "Duración", "🎬")}
         {generar_stat_card(frames_analizados, "Rostros", "👤")}
         {generar_stat_card(f"{tiempo_proceso:.1f}s", "Tiempo", "⚡")}
-        {generar_stat_card(f"{confianza:.1f}%", "Confianza", "🎯")}
+        {generar_stat_card(f"{confianza_visual:.1f}%", "Confianza", "🎯")}
     </div>
     """
     
