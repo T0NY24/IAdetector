@@ -19,3 +19,4 @@ tqdm>=4.65.0
 
 # Opcional (para descargas)
 requests>=2.31.0
+matplotlib>=3.7.0
