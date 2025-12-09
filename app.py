@@ -390,7 +390,7 @@ css_custom = """
 .gradio-container { font-family: 'Inter', sans-serif; }
 """
 
-with gr.Blocks(title="UIDE Forense AI", css=css_custom) as demo:
+with gr.Blocks(title="UIDE Forense AI") as demo:
     gr.Markdown(
         """
         # 🕵️ UIDE Forense AI
