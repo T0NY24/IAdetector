@@ -27,7 +27,6 @@ wheels/
 *.pth
 *.pt
 
-
 # Jupyter Notebook
 .ipynb_checkpoints
 
@@ -50,16 +49,15 @@ flagged/
 *.log
 logs/
 
-# Media temporales
+# Temporary media
 temp/
 tmp/
 *.tmp
 
-# Carpeta de muestras grandes
+# Large sample videos
 samples/*.mp4
 samples/*.avi
 samples/*.mov
 
-# Archivos de pesos
+# Weights directory
 weights/
-*.pth
