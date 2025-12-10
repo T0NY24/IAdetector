@@ -185,13 +185,24 @@ def analizar_imagen(imagen_input) -> str:
             img_tensor = model_manager.transform_imagen(img_pil).unsqueeze(0)
             img_tensor = img_tensor.to(model_manager.dispositivo)
 
-            # Inferencia
+            # Inferencia con TTA (Test Time Augmentation)
             with torch.no_grad():
+                # 1. Predicción Original
                 output = model_manager.modelo_imagen(img_tensor)
-                # Aplicar Sigmoid para obtener probabilidad (0-1)
-                probabilidad_fake = torch.sigmoid(output).item() * 100
+                prob1 = torch.sigmoid(output).item() * 100
 
-            # Determinar clasificación
+                # 2. Predicción Flip Horizontal (Espejo)
+                # Flip en la última dimensión (ancho) [Batch, C, H, W]
+                img_tensor_flip = torch.flip(img_tensor, [3])
+                output_flip = model_manager.modelo_imagen(img_tensor_flip)
+                prob2 = torch.sigmoid(output_flip).item() * 100
+
+                # Tomar la máxima probabilidad (sensibilidad aumentada)
+                probabilidad_fake = max(prob1, prob2)
+
+                logger.info(f"🧠 TTA Resultados: Original={prob1:.2f}%, Flip={prob2:.2f}% -> Final={probabilidad_fake:.2f}%")
+
+            # Determinar clasificación (Nota: El reporte manejará los estados de incertidumbre)
             es_fake = probabilidad_fake > config.IMAGE_THRESHOLD
 
             logger.info(
@@ -355,9 +366,20 @@ def analizar_video(video_path: str, progress=gr.Progress()) -> Generator[Tuple[s
             log_text += "\n✅ Análisis finalizado. Generando reporte..."
             yield "", log_text, None, None
 
-            # Calcular promedio
-            probs_values = [p[1] for p in predicciones]
-            promedio_fake = sum(probs_values) / len(probs_values)
+            # Calcular promedio Top-K (Top 10% más sospechosos)
+            if predicciones:
+                probs_values = [p[1] for p in predicciones]
+                probs_values.sort(reverse=True) # Ordenar de mayor a menor
+
+                k = max(1, int(len(probs_values) * 0.1)) # Top 10%
+                top_k_values = probs_values[:k]
+
+                promedio_fake = sum(top_k_values) / len(top_k_values)
+
+                logger.info(f"📊 Estrategia Top-K: Promedio Top {k} frames = {promedio_fake:.2f}%")
+            else:
+                promedio_fake = 0.0
+
             es_deepfake = promedio_fake > config.VIDEO_THRESHOLD
 
             # Generar gráfico
