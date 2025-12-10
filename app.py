@@ -408,7 +408,10 @@ def analizar_video(video_path: str, progress=gr.Progress()) -> Generator[Tuple[s
 # 🖥️ Interfaz Gradio
 # ==========================================
 
-# NOTA: css eliminado por conflicto en main branch
+css_custom = """
+.gradio-container { font-family: 'Inter', sans-serif; }
+"""
+
 with gr.Blocks(title="UIDE Forense AI") as demo:
     gr.Markdown(
         """
