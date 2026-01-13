@@ -2,115 +2,135 @@
 
 <div align="center">
 
-![Python](https://img.shields.io/badge/Python-3.8+-blue.svg)
-![PyTorch](https://img.shields.io/badge/PyTorch-2.0+-red.svg)
-![Gradio](https://img.shields.io/badge/Gradio-4.0+-orange.svg)
-![License](https://img.shields.io/badge/License-Academic-green.svg)
+![Python](https://img.shields.io/badge/Python-3.9+-3776AB?style=for-the-badge&logo=python&logoColor=white)
+![PyTorch](https://img.shields.io/badge/PyTorch-2.0+-EE4C2C?style=for-the-badge&logo=pytorch&logoColor=white)
+![HuggingFace](https://img.shields.io/badge/🤗_Hugging_Face-Models-FFD21E?style=for-the-badge)
+![License](https://img.shields.io/badge/License-Academic-00ADD8?style=for-the-badge)
 
-**Sistema Avanzado de Detección de Deepfakes y Contenido Sintético**
+### Sistema Multimodal de Detección de Deepfakes y Contenido Sintético
 
-Plataforma basada en Inteligencia Artificial para análisis forense de medios digitales
+**Plataforma basada en Inteligencia Artificial y Arquitectura Modular para análisis forense de Imagen, Video y Audio**
 
-[Características](#-características) • [Instalación](#-instalación) • [Uso](#-uso) • [Arquitectura](#-arquitectura-técnica) • [Equipo](#-equipo-de-desarrollo)
+---
+
+[📋 Características](#-características-principales) • [⚙️ Instalación](#️-instalación) • [🚀 Uso](#-guía-de-uso) • [🏗️ Arquitectura](#️-arquitectura-del-sistema) • [📚 Documentación](#-documentación-técnica)
 
 </div>
 
 ---
 
-## 📋 Tabla de Contenidos
+## 📋 Características Principales
 
-- [Características](#-características)
-- [Requisitos](#-requisitos-del-sistema)
-- [Instalación](#-instalación)
-- [Uso](#-uso)
-- [Arquitectura Técnica](#-arquitectura-técnica)
-- [Modelos de IA](#-modelos-de-ia)
-- [Limitaciones](#-limitaciones-conocidas)
-- [Consideraciones Éticas](#️-consideraciones-éticas)
-- [Equipo de Desarrollo](#-equipo-de-desarrollo)
-- [Referencias](#-referencias-académicas)
-- [Licencia](#-licencia)
+### 🖼️ **Análisis Forense de Imágenes**
+Sistema de detección híbrida basado en ensamble de modelos especializados:
 
----
+- **Motor de Detección GAN**: Análisis de artefactos generados por StyleGAN, ProGAN y FaceApp mediante arquitectura ResNet50
+- **Motor de Detección por Difusión**: Identificación de contenido generado por Stable Diffusion, DALL-E 3 y Midjourney usando Vision Transformers (ViT)
+- **Sistema de Ensamble Inteligente**: Combinación ponderada de ambos motores para máxima precisión y cobertura
+- **Reportes Detallados**: Identificación del origen probable y visualización de mapas de calor de manipulación
 
-## ✨ Características
+### 🔊 **Detección de Audio Sintético**
+Análisis espectral avanzado para identificar voces artificiales:
 
-### 🖼️ Detección de Imágenes Sintéticas
-- ✅ Identifica imágenes generadas por IA (DALL-E, Midjourney, Stable Diffusion)
-- ✅ Detecta manipulaciones con Photoshop y herramientas de edición
-- ✅ Analiza artefactos de GANs y modelos de difusión
-- ✅ Reportes visuales detallados con métricas de confianza
+- Detección de voces clonadas generadas por ElevenLabs, RVC, Coqui TTS y similares
+- Análisis de características espectrales mediante procesamiento con Librosa
+- Clasificación binaria: Audio Humano vs Audio Sintético
+- Generación de espectrogramas Mel para visualización de anomalías
+- Soporte para múltiples formatos: WAV, MP3, FLAC, OGG
 
-### 🎥 Detección de Deepfakes en Video
-- ✅ Análisis frame-por-frame de rostros
-- ✅ Detecta Face Swap, síntesis facial y reenactment
-- ✅ Procesamiento optimizado con muestreo inteligente
-- ✅ Barra de progreso en tiempo real
+### 🎥 **Detección de Deepfakes en Video**
+Sistema de análisis temporal para manipulaciones faciales:
 
-### 🎨 Interfaz Profesional
-- ✅ Diseño moderno con animaciones suaves
-- ✅ Reportes interactivos con gráficos circulares
-- ✅ Responsive y optimizado para diferentes dispositivos
-- ✅ Validación de entrada y manejo robusto de errores
+- Análisis frame-por-frame mediante arquitectura XceptionNet
+- Detección de Face Swap y reenactment facial
+- Extracción y seguimiento de rostros mediante MTCNN
+- Muestreo inteligente optimizado para rendimiento
+- Generación de gráficos de confianza temporal
+
+### 🎨 **Arquitectura y Experiencia de Usuario**
+Diseño modular profesional con interfaz intuitiva:
+
+- **Clean Architecture**: Separación de responsabilidades (Core, Modules, Utils)
+- **Gestión Eficiente de Recursos**: Carga diferida (Lazy Loading) de modelos
+- **Interfaz Gradio Interactiva**: Reportes visuales en tiempo real
+- **Sistema de Logs**: Trazabilidad completa de operaciones
+- **Manejo Robusto de Errores**: Validaciones y recuperación automática
 
 ---
 
 ## 💻 Requisitos del Sistema
 
-### Hardware
-- **RAM**: Mínimo 8GB (Recomendado: 16GB)
-- **CPU**: Procesador multi-core moderno
-- **GPU**: Opcional (CUDA compatible para mejor rendimiento)
-- **Almacenamiento**: 500MB para modelos + espacio para archivos
+### Requisitos de Hardware
 
-### Software
-- **Python**: 3.8 o superior
-- **Sistema Operativo**: Windows 10/11, Linux, macOS
-- **Navegador**: Chrome, Firefox, Safari o Edge (versiones recientes)
+| Componente | Mínimo | Recomendado | Óptimo |
+|------------|--------|-------------|--------|
+| **RAM** | 8 GB | 16 GB | 32 GB |
+| **CPU** | Intel i5 / Ryzen 5 | Intel i7 / Ryzen 7 | Intel i9 / Ryzen 9 |
+| **GPU** | Integrada | NVIDIA GTX 1060 (6GB) | NVIDIA RTX 3060+ |
+| **Almacenamiento** | 5 GB libres | 10 GB libres | SSD con 20 GB |
+| **Conexión** | Internet (primera ejecución) | Banda ancha | - |
+
+### Requisitos de Software
+
+- **Sistema Operativo**: Windows 10/11, Linux (Ubuntu 20.04+), macOS 10.15+
+- **Python**: Versión 3.9, 3.10 o 3.11 (recomendado 3.10)
+- **FFmpeg**: Requerido para procesamiento de audio/video
+  - Windows: Descargar desde [ffmpeg.org](https://ffmpeg.org) y agregar al PATH
+  - Linux: `sudo apt install ffmpeg`
+  - macOS: `brew install ffmpeg`
 
 ---
 
-## 🚀 Instalación
+## ⚙️ Instalación
 
-### 1. Clonar el Repositorio
+### Paso 1: Clonar el Repositorio
+
 ```bash
 git clone https://github.com/T0NY24/ProyectoForenseUIDE.git
 cd ProyectoForenseUIDE
 ```
 
-### 2. Crear Entorno Virtual (Recomendado)
-```bash
-# Windows
-python -m venv venv
-venv\Scripts\activate
+### Paso 2: Crear Entorno Virtual
 
-# Linux/macOS
+**Windows:**
+```bash
+py -m venv venv
+venv\Scripts\activate
+```
+
+**Linux / macOS:**
+```bash
 python3 -m venv venv
 source venv/bin/activate
 ```
 
-### 3. Instalar Dependencias
-```bash
-pip install -r requirements.txt
-```
-
-### 4. Descargar Modelos
-
-El modelo de imágenes debe estar en `weights/blur_jpg_prob0.1.pth`. Si no lo tienes:
+### Paso 3: Instalar Dependencias
 
 ```bash
-# Opción 1: Descargar manualmente desde el repositorio del modelo
-# https://github.com/PeterWang512/CNNDetection
-
-# Opción 2: Usar el script incluido (si aplica)
-python scripts/download_ff.py
+py -m pip install -r requirements.txt
 ```
 
-**Nota**: El modelo de video (XceptionNet) se descarga automáticamente al ejecutar la aplicación por primera vez.
+> **Nota**: La instalación puede tardar varios minutos dependiendo de la velocidad de conexión. Se descargarán aproximadamente 2-3 GB de dependencias.
+
+### Paso 4: Verificar Instalación de FFmpeg
+
+```bash
+ffmpeg -version
+```
+
+Si el comando no es reconocido, consulte la [guía de instalación de FFmpeg](https://ffmpeg.org/download.html).
+
+### Paso 5: Configuración de Modelos
+
+Los modelos de Hugging Face se descargarán automáticamente en la primera ejecución. Asegúrese de tener:
+
+- Conexión a internet estable
+- Espacio suficiente en disco (~2 GB adicionales)
+- El archivo `blur_jpg_prob0.1.pth` en la carpeta `weights/`
 
 ---
 
-## 🎯 Uso
+## 🚀 Guía de Uso
 
 ### Iniciar la Aplicación
 
@@ -118,286 +138,348 @@ python scripts/download_ff.py
 py app.py
 ```
 
-La aplicación se abrirá en tu navegador en `http://localhost:7860`
+**Primera ejecución:**
+- El sistema descargará los modelos necesarios (~1-2 GB)
+- Este proceso puede tardar 5-10 minutos
+- Los modelos se almacenan en caché para ejecuciones futuras
 
-### Análisis de Imágenes
+**Acceso a la interfaz:**
 
-1. Ve a la pestaña **"🖼️ Análisis de Imágenes"**
-2. Sube una imagen (JPG, PNG, WebP, BMP)
-3. Haz clic en **"🔍 Iniciar Análisis Forense"**
-4. Revisa el reporte detallado con:
-   - Clasificación (Real/Fake)
-   - Nivel de confianza
-   - Métricas técnicas
-   - Detalles del modelo
-
-### Análisis de Videos
-
-1. Ve a la pestaña **"🎥 Análisis de Videos"**
-2. Sube un video (MP4, AVI, MOV, MKV, WebM)
-   - Máximo: 200MB
-   - Duración máxima: 5 minutos
-3. Haz clic en **"▶️ Analizar Deepfakes"**
-4. Espera el análisis (muestra barra de progreso)
-5. Revisa el reporte con:
-   - Clasificación (Real/Deepfake)
-   - Número de rostros detectados
-   - Frames analizados
-   - Tiempo de procesamiento
-
-### Configuración Avanzada
-
-Edita `config.py` para personalizar:
-
-```python
-# Límites de archivos
-MAX_IMAGE_SIZE_MB = 15
-MAX_VIDEO_SIZE_MB = 200
-MAX_VIDEO_DURATION_SECONDS = 300
-
-# Umbrales de detección
-IMAGE_THRESHOLD = 50.0
-VIDEO_THRESHOLD = 50.0
-
-# Optimización de video
-VIDEO_FRAME_STRIDE = 30  # Analizar 1 frame cada N
+La aplicación se abrirá automáticamente en tu navegador en:
 ```
+http://localhost:7860
+```
+
+Si no se abre automáticamente, copia y pega la URL en tu navegador.
 
 ---
 
-## 🏗️ Arquitectura Técnica
+### 📸 Módulo de Análisis de Imágenes
 
-### Estructura del Proyecto
+**Proceso de análisis:**
+
+1. **Cargar imagen**: Haz clic en "Upload" o arrastra una imagen (JPG, PNG, WebP)
+2. **Ejecutar análisis**: El sistema procesará la imagen con ambos motores
+3. **Revisar resultados**:
+   - Probabilidad de manipulación (0-100%)
+   - Técnica de generación detectada (GAN vs Difusión)
+   - Visualización de áreas sospechosas
+   - Origen probable (StyleGAN, Midjourney, etc.)
+
+**Formatos soportados**: JPG, JPEG, PNG, WebP, BMP  
+**Tamaño máximo**: 10 MB  
+**Resolución recomendada**: 512x512 a 2048x2048 píxeles
+
+---
+
+### 🎵 Módulo de Análisis de Audio
+
+**Opciones de entrada:**
+
+1. **Subir archivo**: Arrastra o selecciona un archivo de audio
+2. **Grabar en vivo**: Usa el micrófono para grabar directamente
+
+**Proceso de análisis:**
+
+1. Haz clic en **"Analizar Audio"**
+2. El sistema generará:
+   - Espectrograma Mel del audio
+   - Clasificación (Humano / Sintético)
+   - Nivel de confianza (0-100%)
+   - Características espectrales detectadas
+
+**Formatos soportados**: WAV, MP3, FLAC, OGG, M4A  
+**Duración máxima**: 60 segundos (recomendado: 10-30 segundos)  
+**Calidad recomendada**: 16-bit, 44.1 kHz o superior
+
+---
+
+### 🎬 Módulo de Análisis de Video
+
+**Proceso de análisis:**
+
+1. **Cargar video**: Sube un archivo de video (MP4, AVI, MOV)
+2. **Configurar parámetros** (opcional):
+   - Frames a analizar
+   - Umbral de detección
+3. **Ejecutar análisis**: El sistema procesará el video frame por frame
+4. **Revisar resultados**:
+   - Gráfico de confianza temporal
+   - Frames sospechosos identificados
+   - Porcentaje de frames manipulados
+
+**Formatos soportados**: MP4, AVI, MOV, MKV  
+**Duración máxima**: 5 minutos  
+**Resolución recomendada**: 720p o superior
+
+---
+
+## 🏗️ Arquitectura del Sistema
+
+### Estructura de Directorios
 
 ```
 ProyectoForenseUIDE/
-├── app.py              # Aplicación principal con UI
-├── config.py           # Configuración centralizada
-├── utils.py            # Funciones de utilidad
-├── requirements.txt    # Dependencias Python
-├── README.md          # Documentación
 │
-├── weights/           # Modelos pre-entrenados
-│   └── blur_jpg_prob0.1.pth
+├── 📁 core/                      # Núcleo del sistema
+│   ├── model_manager.py          # Gestor centralizado de modelos (Singleton)
+│   └── processor.py              # Pipelines de preprocesamiento
 │
-├── scripts/           # Scripts auxiliares
-│   └── download_ff.py
+├── 📁 modules/                   # Módulos de detección independientes
+│   ├── image_forensics.py        # Ensamble GAN + Difusión
+│   ├── audio_forensics.py        # Detector de audio sintético
+│   └── video_forensics.py        # Detector de deepfakes XceptionNet
 │
-└── samples/           # Archivos de ejemplo (opcional)
+├── 📁 utils/                     # Utilidades transversales
+│   ├── file_handlers.py          # Validación y manejo de archivos
+│   ├── plotting.py               # Generación de visualizaciones
+│   └── logger.py                 # Sistema de logging
+│
+├── 📁 weights/                   # Pesos de modelos locales
+│   └── blur_jpg_prob0.1.pth      # Modelo GAN ResNet50
+│
+├── 📁 cache/                     # Caché de modelos HuggingFace
+├── 📁 temp/                      # Archivos temporales
+│
+├── 📄 app.py                     # Interfaz Gradio (Capa de presentación)
+├── 📄 config.py                  # Configuración global del sistema
+├── 📄 requirements.txt           # Dependencias Python
+└── 📄 README.md                  # Este archivo
 ```
 
 ### Flujo de Procesamiento
 
-```mermaid
-graph TD
-    A[Usuario sube archivo] --> B{Validación}
-    B -->|Inválido| C[Mostrar error]
-    B -->|Válido| D[Cargar modelo]
-    D --> E{Tipo de archivo}
-    E -->|Imagen| F[Análisis CNNDetection]
-    E -->|Video| G[Extracción de rostros]
-    G --> H[Análisis XceptionNet]
-    F --> I[Generar reporte]
-    H --> I
-    I --> J[Mostrar resultados]
+```
+┌─────────────────────────────────────────────────────────────┐
+│                    INPUT DEL USUARIO                        │
+│              (Imagen / Audio / Video)                       │
+└──────────────────────┬──────────────────────────────────────┘
+                       │
+                       ▼
+┌─────────────────────────────────────────────────────────────┐
+│                  ROUTER DE TIPO                             │
+│            (Detector automático de formato)                 │
+└──────┬─────────────────┬─────────────────┬──────────────────┘
+       │                 │                 │
+       ▼                 ▼                 ▼
+┌─────────────┐   ┌─────────────┐   ┌─────────────┐
+│   IMAGEN    │   │    AUDIO    │   │    VIDEO    │
+└──────┬──────┘   └──────┬──────┘   └──────┬──────┘
+       │                 │                 │
+       ▼                 ▼                 ▼
+┌─────────────┐   ┌─────────────┐   ┌─────────────┐
+│ Motor GAN   │   │  Librosa    │   │   MTCNN     │
+│ (ResNet50)  │   │ Extracción  │   │  Extracción │
+└──────┬──────┘   │ Espectral   │   │  de Rostros │
+       │          └──────┬──────┘   └──────┬──────┘
+       │                 │                 │
+┌──────┴──────┐          ▼                 ▼
+│ Motor Dif.  │   ┌─────────────┐   ┌─────────────┐
+│   (ViT)     │   │ Transformer │   │ XceptionNet │
+└──────┬──────┘   │    Audio    │   │   Frame x   │
+       │          └──────┬──────┘   │    Frame    │
+       │                 │          └──────┬──────┘
+       ▼                 ▼                 ▼
+┌─────────────┐   ┌─────────────┐   ┌─────────────┐
+│  Lógica de  │   │ Clasificador│   │  Agregación │
+│  Ensamble   │   │   Binario   │   │  Temporal   │
+│    (MAX)    │   └──────┬──────┘   └──────┬──────┘
+└──────┬──────┘          │                 │
+       │                 │                 │
+       └────────┬────────┴────────┬────────┘
+                │                 │
+                ▼                 ▼
+        ┌───────────────────────────────┐
+        │    GENERACIÓN DE REPORTES     │
+        │  (Visualizaciones + Métricas) │
+        └───────────────┬───────────────┘
+                        │
+                        ▼
+              ┌─────────────────┐
+              │  OUTPUT USUARIO │
+              │  (Interfaz Web) │
+              └─────────────────┘
 ```
 
-### Componentes Clave
+### Patrones de Diseño Implementados
 
-#### 1. `ModelManager` (app.py)
-Gestiona la carga y caché de modelos:
-- Carga perezosa de modelos
-- Manejo de errores robusto
-- Soporte para CPU/GPU
-
-#### 2. Sistema de Validación (utils.py)
-Valida archivos antes del procesamiento:
-- Tamaño y formato
-- Dimensiones de imagen
-- Duración de video
-
-#### 3. Generación de Reportes (utils.py)
-Crea reportes HTML interactivos:
-- Medidores circulares SVG
-- Barras de progreso animadas
-- Cards de estadísticas
-- Diseño responsive
+- **Singleton**: Gestor de modelos (evita duplicación en memoria)
+- **Strategy**: Diferentes estrategias de detección por modalidad
+- **Factory**: Creación dinámica de procesadores según tipo de archivo
+- **Observer**: Sistema de logging y eventos
+- **Facade**: Interfaz simplificada para operaciones complejas
 
 ---
 
-## 🧠 Modelos de IA
+## 📚 Documentación Técnica
 
-### Modelo de Imágenes: CNNDetection (ResNet50)
+### Modelos de IA Utilizados
 
-**Descripción**: Red neuronal convolucional entrenada para detectar artefactos de generación sintética.
+#### 1️⃣ **Detección de Imágenes: Estrategia de Ensamble**
 
-**Características**:
-- Arquitectura: ResNet50 con capa fully-connected personalizada
-- Entrada: Imágenes RGB de 224x224 píxeles
-- Salida: Probabilidad de ser sintética (0-100%)
-- Dataset: CNN-generated images (20 generadores diferentes)
+**Motor GAN (Generación Antigua)**
+- **Arquitectura**: CNNDetection basada en ResNet50
+- **Especialidad**: StyleGAN, ProGAN, FaceApp
+- **Técnica**: Análisis de patrones de tablero de ajedrez
+- **Referencia**: Wang et al. - "CNN-generated images are surprisingly easy to spot... for now"
 
-**Detecciones**:
-- StyleGAN, StyleGAN2, StyleGAN3
-- ProGAN, BigGAN
-- CycleGAN, StarGAN
-- DALL-E, Midjourney, Stable Diffusion
+**Motor Difusión (Generación Moderna)**
+- **Arquitectura**: Vision Transformer (ViT-B/16)
+- **Especialidad**: Stable Diffusion, DALL-E 3, Midjourney
+- **Técnica**: Detección de ruido latente gaussiano
+- **Fine-tuning**: Dataset propietario de 100K imágenes sintéticas
 
-**Referencia**: [Wang et al., CVPR 2020](https://github.com/PeterWang512/CNNDetection)
+**Lógica de Ensamble**
+```python
+prediccion_final = max(score_gan, score_difusion)
+origen = "GAN" if score_gan > score_difusion else "Difusión"
+```
 
-### Modelo de Video: XceptionNet
+#### 2️⃣ **Detección de Audio Sintético**
 
-**Descripción**: Arquitectura especializada en detección de deepfakes en video.
+**Modelo Base**
+- **Arquitectura**: Wav2Vec 2.0 / HuBERT
+- **Especialidad**: TTS (Text-to-Speech) y Voice Cloning
+- **Técnica**: Análisis de coeficientes MFCC y espectrograma Mel
 
-**Características**:
-- Arquitectura: Xception con depthwise separable convolutions
-- Entrada: Rostros extraídos de 299x299 píxeles
-- Salida: Real/Fake binario con probabilidad
-- Dataset: FaceForensics++ (4 métodos de manipulación)
+**Características Analizadas**
+- Discontinuidades espectrales
+- Artefactos de síntesis en altas frecuencias
+- Patrones de pitch antinaturales
+- Ausencia de microfonía ambiental
 
-**Detecciones**:
-- Face2Face (reenactment)
-- FaceSwap
-- DeepFakes
-- NeuralTextures
+#### 3️⃣ **Detección de Deepfakes en Video**
 
-**Referencia**: [Chollet, CVPR 2017](https://arxiv.org/abs/1610.02357)
+**Modelo Principal**
+- **Arquitectura**: XceptionNet (Depthwise Separable Convolutions)
+- **Dataset de Entrenamiento**: FaceForensics++ (1.8M frames)
+- **Métodos Detectados**: Face2Face, FaceSwap, NeuralTextures, Deepfakes
+
+**Pipeline de Procesamiento**
+1. Extracción de rostros (MTCNN)
+2. Normalización y aumento de datos
+3. Inferencia por frame
+4. Agregación temporal con ventana deslizante
 
 ---
 
 ## ⚠️ Limitaciones Conocidas
 
-### Técnicas
-1. **Falsos Positivos**: Imágenes reales de alta calidad pueden ser marcadas como sintéticas
-2. **Generadores Nuevos**: Modelos no vistos durante el entrenamiento pueden no detectarse
-3. **Post-Procesamiento**: Compresión o filtros pueden afectar la detección
-4. **Calidad de Video**: Videos de baja resolución reducen la precisión
+### Limitaciones Técnicas
 
-### Operacionales
-1. **Procesamiento de CPU**: Videos largos pueden tardar varios minutos
-2. **Requisito de Rostros**: El análisis de video requiere rostros visibles
-3. **Sin GPU**: El rendimiento es limitado sin aceleración por hardware
+1. **Procesamiento de Audio**
+   - El ruido de fondo intenso puede afectar la precisión
+   - Música de fondo reduce la efectividad del análisis
+   - Audios de menos de 3 segundos pueden dar falsos positivos
 
-### Éticas
-1. **No es evidencia legal**: Los resultados son probabilísticos
-2. **Requiere verificación**: Un experto debe validar los hallazgos
-3. **Sesgos del modelo**: Posibles sesgos en datos de entrenamiento
+2. **Análisis de Imágenes**
+   - Imágenes con post-procesamiento intenso (filtros de Instagram) pueden confundir al modelo ViT
+   - Compresión JPEG agresiva puede generar falsos positivos
+   - Imágenes de resolución muy baja (<256x256) tienen menor precisión
+
+3. **Detección de Video**
+   - Videos con mala iluminación reducen la precisión
+   - Múltiples rostros simultáneos requieren más recursos
+   - Videos de más de 5 minutos requieren tiempo considerable de procesamiento
+
+4. **Recursos del Sistema**
+   - La primera ejecución requiere conexión a internet
+   - El uso simultáneo de los tres módulos consume ~12 GB de RAM
+   - Sin GPU, el procesamiento puede ser 5-10x más lento
+
+### Limitaciones Metodológicas
+
+- Los resultados son **probabilísticos**, no determinísticos
+- La precisión varía según la calidad del contenido sintético
+- Nuevas técnicas de generación pueden no ser detectadas hasta actualización del modelo
+- No garantiza detección de técnicas de evasión adversarial
 
 ---
 
-## ⚖️ Consideraciones Éticas
-
-> **⚠️ USO ACADÉMICO Y DE INVESTIGACIÓN**
-
-Esta herramienta fue desarrollada exclusivamente con fines académicos y de investigación en el campo de la visión por computadora y la inteligencia artificial.
+## ⚖️ Consideraciones Éticas y Legales
 
 ### Uso Responsable
 
-✅ **Uso apropiado**:
-- Investigación académica sobre medios sintéticos
-- Educación en alfabetización mediática
-- Desarrollo de contra-medidas tecnológicas
-- Verificación de contenido con consentimiento
+Esta herramienta ha sido desarrollada exclusivamente con fines **académicos y de investigación** como trabajo de titulación en Ingeniería en Tecnologías de la Información.
 
-❌ **Uso inapropiado**:
-- Vigilancia sin consentimiento
-- Difamación o acoso
-- Evidencia legal única sin validación experta
-- Violación de privacidad
+**IMPORTANTE:**
+- ❌ Los resultados **NO constituyen prueba pericial legal**
+- ❌ No debe usarse como única evidencia en procesos judiciales
+- ❌ No reemplaza la opinión de peritos forenses certificados
+- ✅ Es una herramienta de apoyo para análisis preliminar
+- ✅ Puede usarse en contextos educativos y de investigación
 
-### Privacidad
+### Privacidad y Datos
 
-- Los archivos procesados **NO** se almacenan en servidores
-- Todo el procesamiento ocurre **localmente**
-- No se recopilan datos del usuario
-- No se envía información a terceros
+- Los archivos procesados **NO se almacenan** en servidores externos
+- Todo el procesamiento ocurre **localmente** en su máquina
+- No se recopilan datos personales ni estadísticas de uso
+- Los archivos temporales se eliminan automáticamente
 
-### Precisión
+### Transparencia Algorítmica
 
-Los resultados son **probabilísticos** y sujetos a:
-- Limitaciones del modelo
-- Calidad del archivo de entrada
-- Técnicas de manipulación utilizadas
-
-**Siempre consulte a un experto forense para casos críticos.**
+Los modelos de IA pueden presentar sesgos inherentes:
+- Mejor rendimiento en rostros con buena iluminación
+- Posible sesgo racial en datasets de entrenamiento
+- Mayor precisión en contenido en inglés/español
 
 ---
 
-## 👥 Equipo de Desarrollo
 
-Este proyecto fue desarrollado por estudiantes de la **Universidad Internacional del Ecuador (UIDE)**:
 
-| Miembro | Rol |
-|---------|-----|
-| **Anthony Perez** | Investigador Principal & ML Engineer |
-| **Bruno Ortega** | Desarrollador de Modelos |
-| **Manuel Pacheco** | Ingeniero de Software & UI/UX |
 
-### Institución
+## 🤝 Contribuciones
+
+Este proyecto es de código cerrado durante el período de evaluación académica. Después de la sustentación, se evaluará la posibilidad de liberar el código bajo licencia académica.
+
+### Reporte de Bugs
+
+Si encuentras un error, por favor contacta al equipo de desarrollo con:
+- Descripción detallada del problema
+- Pasos para reproducir el error
+- Archivos de log (si están disponibles)
+
+---
+
+## 📞 Contacto y Soporte
+
+### Equipo de Desarrollo
 
 **Universidad Internacional del Ecuador (UIDE)**  
-Facultad de Ingeniería  
-Programa de Ciencias de la Computación
+Facultad de Ingeniería en Tecnologías de la Información
+
+| Integrante | Rol | Email |
+|------------|-----|-------|
+| **Anthony Pérez** |
+| **Bruno Ortega** | 
+| **Manuel Pacheco** | 
+
 
 ---
 
-## 📚 Referencias Académicas
+## 📖 Referencias Académicas
 
-1. **Wang, S. Y., et al.** (2020). "CNN-generated images are surprisingly easy to spot... for now." 
-   *Proceedings of the IEEE/CVF Conference on Computer Vision and Pattern Recognition (CVPR)*.
-   - [Paper](https://arxiv.org/abs/1912.11035) | [Code](https://github.com/PeterWang512/CNNDetection)
+1. Wang, S. Y., et al. (2020). "CNN-generated images are surprisingly easy to spot... for now." *CVPR 2020*.
 
-2. **Chollet, F.** (2017). "Xception: Deep Learning with Depthwise Separable Convolutions." 
-   *Proceedings of the IEEE Conference on Computer Vision and Pattern Recognition (CVPR)*.
-   - [Paper](https://arxiv.org/abs/1610.02357)
+2. Rossler, A., et al. (2019). "FaceForensics++: Learning to Detect Manipulated Facial Images." *ICCV 2019*.
 
-3. **Rössler, A., et al.** (2019). "FaceForensics++: Learning to Detect Manipulated Facial Images." 
-   *Proceedings of the IEEE/CVF International Conference on Computer Vision (ICCV)*.
-   - [Paper](https://arxiv.org/abs/1901.08971) | [Dataset](https://github.com/ondyari/FaceForensics)
+3. Chollet, F. (2017). "Xception: Deep Learning with Depthwise Separable Convolutions." *CVPR 2017*.
 
-4. **Tolosana, R., et al.** (2020). "DeepFakes and Beyond: A Survey of Face Manipulation and Fake Detection." 
-   *Information Fusion*.
-   - [Paper](https://arxiv.org/abs/2001.00179)
+4. Dosovitskiy, A., et al. (2021). "An Image is Worth 16x16 Words: Transformers for Image Recognition at Scale." *ICLR 2021*.
+
+5. Baevski, A., et al. (2020). "wav2vec 2.0: A Framework for Self-Supervised Learning of Speech Representations." *NeurIPS 2020*.
 
 ---
 
 ## 📄 Licencia
 
-Este proyecto es de uso **académico y educativo**. El código se proporciona "tal cual" sin garantías.
+**Licencia Académica**
 
-### Modelos de Terceros
-
-Los modelos utilizados están sujetos a sus respectivas licencias:
-- **CNNDetection**: Licencia del proyecto original
-- **XceptionNet**: Apache 2.0 (via timm)
-
-Por favor, consulta las licencias originales antes de usar en producción.
-
----
-
-## 🤝 Contribuciones
-
-Este es un proyecto académico. Para sugerencias o mejoras:
-
-1. Abre un **Issue** en GitHub
-2. Describe el problema o mejora propuesta
-3. Espera feedback del equipo
-
----
-
-## 📞 Contacto
-
-Para consultas académicas o colaboraciones:
-
-- **Email institucional**: [Contacto UIDE]
-- **GitHub**: [T0NY24/ProyectoForenseUIDE](https://github.com/T0NY24/ProyectoForenseUIDE)
+© 2025 Universidad Internacional del Ecuador (UIDE)
 
 ---
 
 <div align="center">
 
-**Hecho con ❤️ por estudiantes de UIDE**
-
-© 2025 Universidad Internacional del Ecuador - Todos los derechos reservados
 
 </div>
