@@ -115,7 +115,7 @@ python scripts/download_ff.py
 ### Iniciar la Aplicación
 
 ```bash
-python app.py
+py app.py
 ```
 
 La aplicación se abrirá en tu navegador en `http://localhost:7860`
