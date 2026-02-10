@@ -1,0 +1,112 @@
+/* UploadImage.css */
+.upload-container {
+    background: var(--color-bg-secondary);
+    border: 2px dashed var(--color-border);
+    border-radius: 12px;
+    padding: 4rem;
+    text-align: center;
+    transition: all 0.3s;
+    cursor: pointer;
+    margin-bottom: 2rem;
+    width: 100%;
+}
+
+.upload-container:hover:not(.disabled) {
+    border-color: var(--color-accent);
+    background: var(--color-bg-tertiary);
+}
+
+.upload-container.drag-active {
+    border-color: var(--color-accent);
+    background: rgba(79, 70, 229, 0.1);
+    transform: scale(1.01);
+}
+
+.upload-container.disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+    pointer-events: none;
+}
+
+.upload-icon {
+    width: 64px;
+    height: 64px;
+    margin: 0 auto 1.5rem;
+    stroke: var(--color-text-muted);
+    fill: none;
+    stroke-width: 1.5;
+}
+
+.upload-title {
+    font-size: 1.125rem;
+    font-weight: 600;
+    margin-bottom: 0.5rem;
+    color: var(--color-text-primary);
+}
+
+.upload-subtitle {
+    color: var(--color-text-secondary);
+    margin-bottom: 1.5rem;
+    font-size: 0.9rem;
+}
+
+.upload-formats {
+    display: flex;
+    gap: 0.5rem;
+    justify-content: center;
+    margin-top: 1.5rem;
+    flex-wrap: wrap;
+}
+
+.format-badge {
+    background: var(--color-bg-tertiary);
+    border: 1px solid var(--color-border);
+    padding: 0.375rem 0.75rem;
+    border-radius: 6px;
+    font-family: var(--font-mono);
+    font-size: 0.75rem;
+    color: var(--color-text-muted);
+}
+
+.btn-upload {
+    background: var(--color-accent);
+    color: white;
+    border: none;
+    padding: 0.875rem 2rem;
+    border-radius: 8px;
+    font-weight: 600;
+    font-size: 0.9rem;
+    cursor: pointer;
+    transition: all 0.2s;
+    font-family: var(--font-display);
+    letter-spacing: -0.01em;
+    display: inline-block;
+}
+
+.btn-upload:hover {
+    background: var(--color-accent-hover);
+    transform: translateY(-1px);
+}
+
+/* Preview Styles */
+.preview-container {
+    width: 100%;
+    max-width: 600px;
+    margin: 0 auto;
+}
+
+.preview-image {
+    width: 100%;
+    max-height: 400px;
+    object-fit: contain;
+    border-radius: 8px;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+    border: 1px solid var(--color-border);
+}
+
+.preview-text {
+    margin-top: 1rem;
+    color: var(--color-accent);
+    font-size: 0.9rem;
+    font-weight: 500;
+}

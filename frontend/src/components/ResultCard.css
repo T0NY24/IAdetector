@@ -1,0 +1,194 @@
+/* ResultCard.css - Matches new dark theme */
+
+.result-card {
+    width: 100%;
+    animation: fadeIn 0.5s ease;
+    background: var(--color-bg-secondary);
+    border: 1px solid var(--color-border);
+    border-radius: 12px;
+    overflow: hidden;
+}
+
+.result-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 1.5rem 2rem;
+    background: var(--color-bg-tertiary);
+    border-bottom: 1px solid var(--color-border);
+}
+
+.result-header h2 {
+    color: var(--color-text-primary);
+    font-size: 1.25rem;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.processing-time {
+    color: var(--color-text-muted);
+    font-family: var(--font-mono);
+    font-size: 0.85rem;
+    background: var(--color-bg-primary);
+    padding: 0.25rem 0.75rem;
+    border-radius: 4px;
+}
+
+/* Veredicto Panel */
+.verdict-panel {
+    padding: 3rem 2rem;
+    text-align: center;
+    border-bottom: 1px solid var(--color-border);
+}
+
+.verdict-label {
+    font-size: 0.9rem;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: var(--color-text-secondary);
+    margin-bottom: 1rem;
+}
+
+.verdict-text {
+    font-size: 2.5rem;
+    font-weight: 700;
+    letter-spacing: -0.03em;
+    margin-bottom: 1rem;
+}
+
+.verdict-fake .verdict-text {
+    color: var(--color-error);
+    text-shadow: 0 0 30px rgba(239, 68, 68, 0.2);
+}
+
+.verdict-real .verdict-text {
+    color: var(--color-success);
+    text-shadow: 0 0 30px rgba(16, 185, 129, 0.2);
+}
+
+.verdict-inconclusive .verdict-text {
+    color: var(--color-warning);
+}
+
+.confidence-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.5rem 1.25rem;
+    border-radius: 100px;
+    font-family: var(--font-mono);
+    font-weight: 600;
+    font-size: 0.9rem;
+    background: var(--color-bg-tertiary);
+    border: 1px solid var(--color-border);
+}
+
+.verdict-fake .confidence-badge {
+    border-color: rgba(239, 68, 68, 0.3);
+    color: var(--color-error);
+}
+
+.verdict-real .confidence-badge {
+    border-color: rgba(16, 185, 129, 0.3);
+    color: var(--color-success);
+}
+
+/* Details Grid */
+.details-grid {
+    display: grid;
+    grid-template-columns: 1.2fr 0.8fr;
+    gap: 2rem;
+    padding: 2rem;
+}
+
+@media (max-width: 900px) {
+    .details-grid {
+        grid-template-columns: 1fr;
+    }
+}
+
+.scores-column h3,
+.evidence-column h3 {
+    font-size: 1rem;
+    color: var(--color-text-primary);
+    margin-bottom: 1.5rem;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+/* Scores List */
+.scores-list {
+    display: flex;
+    flex-direction: column;
+    gap: 1.25rem;
+}
+
+.score-row {
+    background: var(--color-bg-tertiary);
+    padding: 1rem;
+    border-radius: 8px;
+    border: 1px solid var(--color-border);
+}
+
+.score-info {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 0.75rem;
+    font-size: 0.9rem;
+}
+
+.score-name {
+    color: var(--color-text-secondary);
+    font-weight: 500;
+}
+
+.score-num {
+    font-family: var(--font-mono);
+    color: var(--color-text-primary);
+}
+
+.progress-track {
+    height: 6px;
+    background: var(--color-bg-primary);
+    border-radius: 3px;
+    overflow: hidden;
+}
+
+.progress-fill {
+    height: 100%;
+    border-radius: 3px;
+    background: var(--color-accent);
+}
+
+.score-row.highlight {
+    border-color: var(--color-accent);
+    background: rgba(79, 70, 229, 0.05);
+}
+
+.score-row.highlight .progress-fill {
+    background: linear-gradient(90deg, var(--color-accent), var(--color-accent-hover));
+}
+
+/* Evidence List */
+.evidence-list {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+}
+
+.evidence-item {
+    background: var(--color-bg-tertiary);
+    border-left: 3px solid var(--color-accent);
+    padding: 1rem;
+    border-radius: 0 8px 8px 0;
+    font-size: 0.9rem;
+    color: var(--color-text-secondary);
+    line-height: 1.5;
+}
+
+.evidence-item:hover {
+    background: var(--color-bg-primary);
+    color: var(--color-text-primary);
+}

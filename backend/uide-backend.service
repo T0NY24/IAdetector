@@ -1,0 +1,29 @@
+[Unit]
+Description=UIDE Forense AI Backend
+After=network.target
+
+[Service]
+Type=notify
+User=www-data
+Group=www-data
+WorkingDirectory=/opt/uide-forense/backend
+Environment="PATH=/opt/uide-forense/venv/bin"
+Environment="PYTHONPATH=/opt/uide-forense"
+
+# Cargar variables de entorno
+EnvironmentFile=/opt/uide-forense/.env
+
+ExecStart=/opt/uide-forense/venv/bin/gunicorn \
+    --bind 127.0.0.1:5000 \
+    --workers 4 \
+    --timeout 120 \
+    --access-logfile /var/log/uide-forense/access.log \
+    --error-logfile /var/log/uide-forense/error.log \
+    --log-level info \
+    wsgi:app
+
+Restart=always
+RestartSec=10
+
+[Install]
+WantedBy=multi-user.target

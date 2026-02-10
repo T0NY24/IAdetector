@@ -1,13 +1,19 @@
 """
 UIDE Forense AI - Sistema de Detección de Contenido Sintético
-Clean Architecture - Interfaz Gradio
+Clean Architecture - Interfaz Gradio v3.0+
 
-Este archivo contiene únicamente la interfaz de usuario.
-La lógica de negocio está separada en los módulos core/ y modules/.
+Este archivo contiene ÚNICAMENTE la interfaz de usuario.
+Toda la lógica de decisión proviene de los detectores en modules/.
+
+Módulo de imágenes v3.0+:
+- multiLID (análisis geométrico)
+- UFD (clasificador visual)
+- Semantic Expert (plausibilidad semántica)
+- Fusion Engine (decisión jerárquica)
 """
 
 import logging
-from typing import Optional, Tuple, Generator
+from typing import Optional, Tuple
 from PIL import Image
 
 import gradio as gr
@@ -25,7 +31,6 @@ from utils.file_handlers import (
     validar_imagen, 
     validar_video,
     validar_audio,
-    generar_reporte_imagen, 
     generar_reporte_video,
     generar_reporte_audio,
     generar_reporte_error,
@@ -46,7 +51,7 @@ logger = logging.getLogger(__name__)
 # 🧠 Inicialización de Detectores
 # ==========================================
 logger.info("=" * 60)
-logger.info("🚀 UIDE Forense AI 2.0 - Iniciando Sistema")
+logger.info("🚀 UIDE Forense AI 3.0+ - Iniciando Sistema")
 logger.info("=" * 60)
 
 # Los modelos se cargan bajo demanda (lazy loading)
@@ -58,12 +63,133 @@ logger.info("✅ Detectores inicializados (modelos: lazy loading)")
 
 
 # ==========================================
+# 🎨 Generación de Reportes HTML
+# ==========================================
+
+def generar_reporte_imagen_forense(resultado: dict, ancho: int, alto: int, tiempo: float) -> str:
+    """
+    Genera un reporte HTML forense detallado para el análisis de imagen.
+    
+    Args:
+        resultado: Dict retornado por detector.analyze_dict()
+        ancho: Ancho de la imagen
+        alto: Alto de la imagen
+        tiempo: Tiempo de procesamiento
+        
+    Returns:
+        HTML formateado para Gradio
+    """
+    verdict = resultado.get("verdict", "ERROR")
+    confidence = resultado.get("confidence", "N/A")
+    scores = resultado.get("scores", {})
+    evidence = resultado.get("evidence", [])
+    notes = resultado.get("notes", "")
+    
+    # Determinar color y emoji según veredicto
+    if "IA" in verdict or "GENERADA" in verdict:
+        color = "#ef4444"  # Rojo
+        emoji = "🚨"
+        bg_color = "#fef2f2"
+        border_color = "#fca5a5"
+    elif "REAL" in verdict:
+        color = "#22c55e"  # Verde
+        emoji = "✅"
+        bg_color = "#f0fdf4"
+        border_color = "#86efac"
+    elif "NO CONCLUYENTE" in verdict:
+        color = "#f59e0b"  # Ámbar
+        emoji = "⚠️"
+        bg_color = "#fffbeb"
+        border_color = "#fcd34d"
+    else:
+        color = "#6b7280"  # Gris
+        emoji = "❓"
+        bg_color = "#f9fafb"
+        border_color = "#d1d5db"
+    
+    # Generar barras de scores
+    scores_html = ""
+    for expert, score in scores.items():
+        percent = score * 100
+        bar_color = "#ef4444" if percent > 50 else "#22c55e"
+        scores_html += f"""
+        <div style="margin: 8px 0;">
+            <div style="display: flex; justify-content: space-between; margin-bottom: 4px;">
+                <span style="font-weight: 500;">{expert}</span>
+                <span style="font-weight: 600; color: {bar_color};">{percent:.1f}%</span>
+            </div>
+            <div style="background: #e5e7eb; border-radius: 4px; height: 8px; overflow: hidden;">
+                <div style="background: {bar_color}; height: 100%; width: {percent}%; transition: width 0.3s;"></div>
+            </div>
+        </div>
+        """
+    
+    # Generar lista de evidencia
+    evidence_html = ""
+    for item in evidence:
+        evidence_html += f'<li style="margin: 4px 0; color: #374151;">{item}</li>'
+    
+    html = f"""
+    <div style="font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif; max-width: 600px;">
+        
+        <!-- Header con veredicto -->
+        <div style="background: {bg_color}; border: 2px solid {border_color}; border-radius: 12px; padding: 20px; margin-bottom: 16px;">
+            <div style="display: flex; align-items: center; gap: 12px;">
+                <span style="font-size: 2.5em;">{emoji}</span>
+                <div>
+                    <h2 style="margin: 0; color: {color}; font-size: 1.4em;">{verdict}</h2>
+                    <p style="margin: 4px 0 0 0; color: #6b7280;">Confianza: <strong>{confidence}</strong></p>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Scores de expertos -->
+        <div style="background: #f9fafb; border-radius: 12px; padding: 16px; margin-bottom: 16px;">
+            <h3 style="margin: 0 0 12px 0; color: #1f2937; font-size: 1.1em;">📊 Análisis por Experto</h3>
+            {scores_html}
+        </div>
+        
+        <!-- Evidencia forense -->
+        <div style="background: #f9fafb; border-radius: 12px; padding: 16px; margin-bottom: 16px;">
+            <h3 style="margin: 0 0 12px 0; color: #1f2937; font-size: 1.1em;">🔍 Evidencia Forense</h3>
+            <ul style="margin: 0; padding-left: 20px; font-size: 0.95em;">
+                {evidence_html}
+            </ul>
+        </div>
+        
+        <!-- Notas -->
+        <div style="background: #eff6ff; border-radius: 12px; padding: 16px; margin-bottom: 16px;">
+            <h3 style="margin: 0 0 8px 0; color: #1e40af; font-size: 1em;">💡 Interpretación</h3>
+            <p style="margin: 0; color: #1e3a8a; font-size: 0.95em;">{notes}</p>
+        </div>
+        
+        <!-- Metadatos -->
+        <div style="display: flex; gap: 16px; flex-wrap: wrap; font-size: 0.85em; color: #6b7280;">
+            <span>📐 {ancho} × {alto} px</span>
+            <span>⏱️ {tiempo:.2f}s</span>
+            <span>🔬 Módulo v3.0+</span>
+        </div>
+        
+    </div>
+    """
+    
+    return html
+
+
+# ==========================================
 # 🔍 Funciones de Análisis
 # ==========================================
 
 def analizar_imagen(imagen_input) -> str:
     """
-    Analiza una imagen para detectar si es sintética usando el ensamble GAN+Difusión.
+    Analiza una imagen usando el detector forense v3.0+.
+    
+    Pipeline:
+    1. Validar entrada
+    2. Llamar a detector.analyze_dict()
+    3. Generar reporte HTML forense
+    
+    NO contiene lógica de decisión - todo viene del detector.
     """
     logger.info("📸 Solicitud de análisis de imagen recibida")
     
@@ -77,8 +203,8 @@ def analizar_imagen(imagen_input) -> str:
     
     try:
         with Timer() as timer:
-            # Análisis con el detector de imagen (ensamble)
-            resultado = image_detector.predict(imagen_input)
+            # Análisis con el detector v3.0+ (toda la lógica está aquí)
+            resultado = image_detector.analyze_dict(imagen_input)
         
         # Obtener dimensiones
         if hasattr(imagen_input, 'shape'):
@@ -86,16 +212,12 @@ def analizar_imagen(imagen_input) -> str:
         else:
             ancho, alto = imagen_input.size
         
-        # Generar reporte mejorado con info del ensamble
-        return generar_reporte_imagen(
-            es_fake=resultado["score"] > 50,
-            probabilidad=resultado["score"],
+        # Generar reporte forense explicable
+        return generar_reporte_imagen_forense(
+            resultado=resultado,
             ancho=ancho,
             alto=alto,
-            tiempo_proceso=timer.duracion,
-            origen_detectado=resultado.get("detected_source", "N/A"),
-            gan_score=resultado.get("gan_score", 0),
-            diffusion_score=resultado.get("diffusion_score", 0),
+            tiempo=timer.duracion,
         )
         
     except Exception as e:
@@ -106,14 +228,11 @@ def analizar_imagen(imagen_input) -> str:
 def analizar_video(video_path: str, progress=gr.Progress()) -> Tuple[str, str, Optional[Image.Image], Optional[Image.Image]]:
     """
     Analiza un video para detectar deepfakes.
-    Función generadora que emite actualizaciones de estado.
     """
     logger.info("🎬 Solicitud de análisis de video recibida")
     
-    # Estados iniciales
     log_text = "🚀 Iniciando proceso..."
     
-    # Validación de entrada
     if video_path is None:
         yield generar_reporte_error("No se proporcionó ningún video", "warning"), "❌ Error: Sin video", None, None
         return
@@ -125,7 +244,6 @@ def analizar_video(video_path: str, progress=gr.Progress()) -> Tuple[str, str, O
     
     try:
         with Timer() as timer:
-            # Usar el detector de video
             resultado_final = None
             for resultado in video_detector.predict(video_path, progress):
                 if resultado["status"] == "error":
@@ -141,10 +259,8 @@ def analizar_video(video_path: str, progress=gr.Progress()) -> Tuple[str, str, O
             yield generar_reporte_error("No se obtuvo resultado", "error"), "❌ Error inesperado", None, None
             return
         
-        # Generar gráfico de timeline
         timeline_plot = generar_grafico_temporal(resultado_final.get("predictions", []))
         
-        # Generar reporte HTML
         reporte_html = generar_reporte_video(
             es_deepfake=resultado_final["is_deepfake"],
             probabilidad=resultado_final["probability"],
@@ -169,7 +285,6 @@ def analizar_audio(audio_path: str) -> str:
     """
     logger.info("🔊 Solicitud de análisis de audio recibida")
     
-    # Validación de entrada
     if audio_path is None:
         return generar_reporte_error("No se proporcionó ningún archivo de audio", "warning")
     
@@ -179,13 +294,11 @@ def analizar_audio(audio_path: str) -> str:
     
     try:
         with Timer() as timer:
-            # Análisis con el detector de audio
             resultado = audio_detector.predict(audio_path)
         
         if "error" in resultado and resultado.get("verdict") == "ERROR":
             return generar_reporte_error(resultado["error"], "error")
         
-        # Generar reporte
         return generar_reporte_audio(
             es_sintetico=resultado["score"] > 50,
             probabilidad=resultado["score"],
@@ -211,27 +324,37 @@ css_custom = """
 }
 """
 
-with gr.Blocks(title="UIDE Forense AI 2.0") as demo:
+with gr.Blocks(title="UIDE Forense AI 3.0+") as demo:
+    gr.HTML(f"<style>{css_custom}</style>")
     gr.Markdown(
         """
-        # 🕵️ UIDE Forense AI 2.0
-        ### Sistema Multimodal de Detección de Contenido Sintético y Deepfakes
+        # 🕵️ UIDE Forense AI 3.0+
+        ### Sistema Multimodal de Detección de Contenido Sintético
         
-        > **Nuevo en v2.0**: Detección de imágenes mejorada con ensamble GAN+Difusión, 
-        > soporte para detección de audio sintético.
+        > **Nuevo en v3.0+**: Detector de imágenes con multiLID, UFD y Semantic Expert.  
+        > Motor de fusión jerárquico optimizado para difusión ultra-realista.
         """
     )
 
     with gr.Tabs():
 
         # =============================================
-        # TAB 1: Imágenes (GAN + Difusión)
+        # TAB 1: Imágenes (Detector Forense v3.0+)
         # =============================================
-        with gr.TabItem("🖼️ Imágenes (GAN + Difusión)"):
+        with gr.TabItem("🖼️ Imágenes"):
             gr.Markdown("""
-            ### Detección de Imágenes Generadas por IA
-            - **Modelo GAN**: Detecta imágenes de StyleGAN, FaceApp, ProGAN
-            - **Modelo Difusión**: Detecta imágenes de Midjourney, DALL-E, Stable Diffusion
+            ### Análisis Forense de Imágenes
+            
+            **Expertos utilizados:**
+            - 🔬 **multiLID**: Análisis geométrico del espacio de features
+            - 🎯 **UFD**: Clasificador visual universal (CLIP)
+            - 🧠 **Semantic**: Análisis de plausibilidad de la escena
+            
+            **Veredictos posibles:**
+            - 🚨 GENERADA POR IA
+            - ⚠️ PROBABLEMENTE GENERADA POR IA
+            - ✅ PROBABLEMENTE REAL / REAL
+            - ❓ NO CONCLUYENTE (raro)
             """)
             
             with gr.Row():
@@ -244,14 +367,14 @@ with gr.Blocks(title="UIDE Forense AI 2.0") as demo:
                     btn_img = gr.Button("🔍 Analizar Imagen", variant="primary", size="lg")
                     
                 with gr.Column():
-                    img_output = gr.HTML(label="Resultados")
+                    img_output = gr.HTML(label="Resultados Forenses")
 
             btn_img.click(analizar_imagen, inputs=img_input, outputs=img_output)
 
         # =============================================
         # TAB 2: Video (Deepfakes)
         # =============================================
-        with gr.TabItem("🎥 Video (Deepfakes)"):
+        with gr.TabItem("🎥 Video"):
             gr.Markdown("""
             ### Detección de Deepfakes en Video
             - **Modelo**: XceptionNet (FaceForensics++)
@@ -261,7 +384,7 @@ with gr.Blocks(title="UIDE Forense AI 2.0") as demo:
             with gr.Row():
                 with gr.Column(scale=1):
                     vid_input = gr.Video(label="Video a analizar", sources=["upload"])
-                    btn_vid = gr.Button("▶️ Iniciar Análisis Profundo", variant="primary", size="lg")
+                    btn_vid = gr.Button("▶️ Iniciar Análisis", variant="primary", size="lg")
 
                     log_output = gr.Textbox(
                         label="📜 Log de Estado",
@@ -279,7 +402,7 @@ with gr.Blocks(title="UIDE Forense AI 2.0") as demo:
                             type="pil"
                         )
                         culprit_output = gr.Image(
-                            label="📸 Frame Más Sospechoso", 
+                            label="📸 Frame Sospechoso", 
                             type="pil"
                         )
 
@@ -292,11 +415,11 @@ with gr.Blocks(title="UIDE Forense AI 2.0") as demo:
         # =============================================
         # TAB 3: Audio (Voz Sintética)
         # =============================================
-        with gr.TabItem("🔊 Audio (Voz Sintética)"):
+        with gr.TabItem("🔊 Audio"):
             gr.Markdown("""
-            ### Detección de Audio Generado por IA
-            - **Detecta**: ElevenLabs, RVC, TTS modernos, clonación de voz
-            - **Método**: Análisis espectral con modelos de HuggingFace
+            ### Detección de Audio Sintético
+            - **Detecta**: ElevenLabs, RVC, TTS, clonación de voz
+            - **Método**: Análisis espectral con Wav2Vec2
             """)
             
             with gr.Row():
@@ -319,39 +442,33 @@ with gr.Blocks(title="UIDE Forense AI 2.0") as demo:
         with gr.TabItem("ℹ️ Acerca de"):
             gr.Markdown(
                 """
-                ### UIDE Forense AI 2.0
-                Sistema multimodal de detección de contenido sintético desarrollado para 
-                análisis forense digital.
+                ### UIDE Forense AI 3.0+
+                Sistema multimodal de detección de contenido sintético.
                 
                 ---
                 
-                #### 🧠 Modelos Utilizados
+                #### 🧠 Arquitectura de Imagen v3.0+
                 
-                | Tipo | Modelo | Descripción |
-                |------|--------|-------------|
-                | 🖼️ Imagen GAN | ResNet50 (Wang et al.) | Detecta artefactos de redes GAN |
-                | 🖼️ Imagen Difusión | ViT (HuggingFace) | Detecta imágenes de modelos de difusión |
-                | 🎥 Video | XceptionNet | Detecta deepfakes faciales |
-                | 🔊 Audio | Wav2Vec2 | Detecta voces sintéticas |
+                | Componente | Tecnología | Función |
+                |------------|------------|---------|
+                | Backbone | CLIP ViT-L/14 | Extracción de features |
+                | multiLID | LID Analysis | Anomalías geométricas |
+                | UFD | Linear Classifier | Patrones visuales IA |
+                | Semantic | CLIP Prompting | Plausibilidad escena |
+                | Fusion | Hierarchical Logic | Decisión explicable |
                 
                 ---
                 
                 #### 📚 Referencias
-                - Wang et al. "CNN-generated images are surprisingly easy to spot... for now"
-                - FaceForensics++ Benchmark
-                - HuggingFace Transformers
+                - Radford et al., 2021 - CLIP
+                - Ojha et al., CVPR 2023 - UniversalFakeDetect
+                - Ma et al., ICLR 2018 - LID
                 
                 ---
                 
-                #### ⚙️ Arquitectura
-                ```
-                ProyectoForenseUIDE/
-                ├── app.py          # Interfaz (este archivo)
-                ├── config.py       # Configuración
-                ├── core/           # Gestión de modelos
-                ├── modules/        # Detectores especializados
-                └── utils/          # Utilidades y reportes
-                ```
+                #### 👥 Equipo
+                **Universidad Internacional del Ecuador (UIDE)**  
+                Anthony Pérez • Bruno Ortega • Manuel Pacheco
                 """
             )
 

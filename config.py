@@ -1,90 +1,114 @@
 """
-Configuración centralizada del proyecto UIDE Forense AI
-Clean Architecture - Actualizado con soporte multimodal
+Configuración Actualizada - Flask Backend
+UIDE Forense AI 3.0+ con DeepSeek-R1
 """
 
 import os
 from pathlib import Path
 
 # ==========================================
-# 📁 Rutas de Archivos (Compatible Windows/Unix)
+# 📁 Rutas Base
 # ==========================================
 BASE_DIR = Path(__file__).parent.resolve()
+BACKEND_DIR = BASE_DIR / "backend"
 WEIGHTS_DIR = BASE_DIR / "weights"
-SAMPLES_DIR = BASE_DIR / "samples"
-
-# Rutas de modelos locales
-MODEL_IMAGE_PATH = WEIGHTS_DIR / "blur_jpg_prob0.1.pth"
-
-# Nombres de modelos (timm/HuggingFace)
-MODEL_VIDEO_NAME = "xception"
-MODEL_DIFFUSION_NAME = "umm-maybe/AI-image-detector"
-MODEL_AUDIO_NAME = "MelodyMachine/Deepfake-audio-detection"
+UPLOAD_FOLDER = BACKEND_DIR / "uploads"
+LOGS_DIR = BACKEND_DIR / "logs"
 
 # ==========================================
-# 📊 Límites y Validación
+# 🌐 Flask Configuration
 # ==========================================
-MAX_IMAGE_SIZE_MB = 15
-MAX_VIDEO_SIZE_MB = 200
-MAX_AUDIO_SIZE_MB = 50
-MAX_VIDEO_DURATION_SECONDS = 300  # 5 minutos
-MAX_AUDIO_DURATION_SECONDS = 600  # 10 minutos
+SECRET_KEY = os.getenv("FLASK_SECRET_KEY", "dev-secret-key-change-in-production")
+DEBUG = os.getenv("FLASK_DEBUG", "False").lower() == "true"
+TESTING = False
 
-# Formatos soportados
-SUPPORTED_IMAGE_FORMATS = ['.jpg', '.jpeg', '.png', '.webp', '.bmp']
-SUPPORTED_VIDEO_FORMATS = ['.mp4', '.avi', '.mov', '.mkv', '.webm']
-SUPPORTED_AUDIO_FORMATS = ['.mp3', '.wav', '.ogg', '.flac', '.m4a', '.aac']
+# CORS
+CORS_ORIGINS = os.getenv("CORS_ORIGINS", "http://localhost:3000,http://localhost:5173").split(",")
+
+# Upload limits
+MAX_CONTENT_LENGTH = 20 * 1024 * 1024  # 20MB
+ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg', 'webp', 'bmp'}
 
 # ==========================================
-# 🎯 Parámetros de Análisis - Imágenes
+# 🖼️ Image Forensics Configuration
 # ==========================================
-IMAGE_THRESHOLD = 50.0  # Umbral de clasificación (%)
-IMAGE_SIZE = 224
 
-# Transformaciones estándar (CNNDetection)
-TRANSFORMS_RESIZE = 256
+# CLIP
+CLIP_MODEL_NAME = "ViT-L/14"
+
+# multiLID
+LID_K_NEIGHBORS = 20
+LID_LAYERS = [6, 8, 10, 11]
+
+# UFD
+UFD_WEIGHTS_PATH = WEIGHTS_DIR / "ufd_classifier.pth"
+UFD_TEMPERATURE = 1.5
+
+# Semantic Expert
+SEMANTIC_ENABLED = True
+SEMANTIC_THRESHOLDS = {
+    "improbability_high": 0.65,
+    "improbability_medium": 0.45,
+    "collision_significant": 0.55,
+    "composition_synthetic": 0.60,
+    "overall_synthetic": 0.55,
+}
+
+# ==========================================
+# 🤖 DeepSeek-R1 LLM Configuration
+# ==========================================
+DEEPSEEK_ENABLED = os.getenv("DEEPSEEK_ENABLED", "false").lower() == "true"
+DEEPSEEK_API_URL = os.getenv("DEEPSEEK_API_URL", "http://localhost:11434/api/generate")
+DEEPSEEK_MODEL = os.getenv("DEEPSEEK_MODEL", "deepseek-r1:7b")
+DEEPSEEK_TIMEOUT = int(os.getenv("DEEPSEEK_TIMEOUT", "60"))
+DEEPSEEK_MAX_RETRIES = int(os.getenv("DEEPSEEK_MAX_RETRIES", "3"))
+DEEPSEEK_TEMPERATURE = float(os.getenv("DEEPSEEK_TEMPERATURE", "0.3"))
+
+# ==========================================
+# ⚗️ Fusion Engine
+# ==========================================
+FUSION_THRESHOLDS = {
+    "gate_multilid": 0.25,
+    "gate_ufd": 0.45,
+    "gate_semantic": 0.55,
+    "ia_multilid_strong": 0.45,
+    "ia_ufd_definitive": 0.70,
+    "ia_ufd_strong": 0.55,
+    "ia_ufd_with_semantic": 0.45,
+    "ia_semantic_support": 0.60,
+}
+
+# ==========================================
+# 🔧 Technical Settings
+# ==========================================
+DEVICE = os.getenv("DEVICE", "cpu")  # 'cuda' si hay GPU
+NUM_WORKERS = int(os.getenv("NUM_WORKERS", "4"))
+ENABLE_CACHE = True
+
+# Transforms
+TRANSFORMS_RESIZE = (224, 224)
 TRANSFORMS_CROP = 224
 TRANSFORMS_MEAN = [0.485, 0.456, 0.406]
 TRANSFORMS_STD = [0.229, 0.224, 0.225]
 
 # ==========================================
-# 🎯 Parámetros de Análisis - Video
+# 📊 Logging
 # ==========================================
-VIDEO_FRAME_STRIDE = 30  # Analizar 1 frame cada N frames
-VIDEO_SIZE = 299
-VIDEO_THRESHOLD = 50.0
-MIN_FACES_REQUIRED = 3  # Mínimo de rostros para análisis válido
-
-# ==========================================
-# 🎯 Parámetros de Análisis - Audio
-# ==========================================
-AUDIO_SAMPLE_RATE = 16000  # Sample rate para modelos de voz
-AUDIO_THRESHOLD = 50.0  # Umbral de clasificación (%)
-AUDIO_MAX_DURATION = 30  # Máximo segundos a analizar por chunk
-
-# ==========================================
-# 🎨 Configuración UI
-# ==========================================
-DEFAULT_THEME = "soft"
-PRIMARY_COLOR = "blue"
-SECONDARY_COLOR = "slate"
-
-# Colores para reportes
-COLOR_FAKE = "#ef4444"      # Rojo
-COLOR_REAL = "#22c55e"      # Verde
-COLOR_WARNING = "#f59e0b"   # Ámbar
-COLOR_INFO = "#3b82f6"      # Azul
-
-# ==========================================
-# 🔧 Configuración Técnica
-# ==========================================
-DEVICE = "cpu"  # Cambiar a 'cuda' si hay GPU disponible
-NUM_WORKERS = 4
-ENABLE_CACHE = True
-
-# HuggingFace Cache (opcional - usa default si no se especifica)
-# HF_CACHE_DIR = WEIGHTS_DIR / "hf_cache"
-
-# Logging
-LOG_LEVEL = "INFO"
+LOG_LEVEL = os.getenv("LOG_LEVEL", "INFO")
 LOG_FORMAT = "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
+
+# ==========================================
+# 🚀 Production Settings
+# ==========================================
+# Gunicorn
+GUNICORN_WORKERS = int(os.getenv("GUNICORN_WORKERS", "4"))
+GUNICORN_BIND = os.getenv("GUNICORN_BIND", "127.0.0.1:5000")
+GUNICORN_TIMEOUT = int(os.getenv("GUNICORN_TIMEOUT", "120"))
+
+# ==========================================
+# 🔒 Security
+# ==========================================
+# En producción, configurar desde variables de entorno
+SESSION_COOKIE_SECURE = os.getenv("SESSION_COOKIE_SECURE", "False").lower() == "true"
+SESSION_COOKIE_HTTPONLY = True
+SESSION_COOKIE_SAMESITE = 'Lax'

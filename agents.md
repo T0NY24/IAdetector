@@ -1,312 +1,163 @@
-# 🤖 UIDE Forense AI 2.0 - Documentación para Agentes IA
+# 🤖 UIDE Forense AI 3.0+ - Documentación para Agentes IA
 
-> **Para:** Agentes IA (Claude, Jules, etc.)  
-> **Versión:** 2.0 - Clean Architecture  
-> **Fecha:** Enero 2026  
-> **Proyecto:** Sistema Multimodal de Detección de Deepfakes
-
----
-
-## 📋 Resumen Ejecutivo
-
-**UIDE Forense AI** es un sistema de análisis forense digital que detecta:
-- **Imágenes sintéticas** (GANs + Modelos de Difusión)
-- **Videos deepfake** (manipulación facial)
-- **Audio sintético** (voces de IA, clonación)
-
-### Stack Tecnológico
-| Capa | Tecnología |
-|------|------------|
-| Frontend | Gradio 4.0+ |
-| Backend | Python 3.8+ |
-| ML Framework | PyTorch 2.0+, HuggingFace Transformers |
-| Modelos | ResNet50, ViT, XceptionNet, Wav2Vec2 |
+> **Para:** Agentes IA (Claude, Jules, Gemini, etc.)
+> **Versión:** 3.3 (Flask + React Migration + Anti-False-Positive Calibration)
+> **Fecha:** Febrero 2026
 
 ---
 
-## 🏗️ Arquitectura Clean Architecture
+## 📋 Resumen del Sistema
+
+Sistema de análisis forense digital avanzado con arquitectura modular **Clean Architecture**. Se ha migrado de una aplicación monolítica Gradio a una arquitectura moderna **Frontend-Backend**.
+
+Implementa un enfoque híbrido combinando análisis geométrico, clasificadores visuales y **razonamiento semántico profundo** mediante **DeepSeek-R1**.
+
+### Módulos Principales
+1.  **Image Forensics**:
+    *   **multiLID**: Análisis de Dimensión Intrínseca Local (geométrico).
+    *   **UFD**: Universal Fake Detect (clasificador visual en espacio CLIP).
+    *   **Semantic Expert**: Análisis de plausibilidad con **DeepSeek-R1** (razonamiento) y CLIP (embeddings).
+2.  **Video Forensics**: XceptionNet (análisis frame a frame).
+3.  **Audio Forensics**: Wav2Vec2 / MelodyMachine.
+
+---
+
+## 🏗️ Arquitectura del Sistema
+
+El sistema sigue una arquitectura cliente-servidor desacoplada.
+
+```
+[React Frontend :5173]
+        ↓ (HTTPS/WSS via Nginx)
+[Flask Backend :5000]
+        ↓
+[ForensicsPipeline]
+  ├─ 1. Feature Extractor (CLIP ViT-L/14)
+  │      └─ calculate_probabilities() (Cosine Similarity)
+  │
+  ├─ 2. Experts Layer
+  │    ├─ MultiLID Expert (Geometry)
+  │    ├─ UFD Expert (Visual Artifacts)
+  │    └─ Semantic Expert (Reasoning)
+  │         └─ DeepSeekClient (Simple) -> [Ollama :11434]
+  │
+  └─ 3. Fusion Engine V3.3 (User Calibrated)
+```
+
+### Backend (Flask + Gunicorn)
+*   **Path**: `backend/`
+*   **Entry Point**: `app.py` (Factory Pattern)
+*   **API**: RESTful, con Blueprints modulares (`routes/`).
+*   **LLM**: Integración directa con **Ollama** para DeepSeek-R1 usando un cliente ligero (`requests`).
+
+### Frontend (React + Vite)
+*   **Path**: `frontend/`
+*   **Tech Stack**: React 18, Vite, CSS Modules (Dark Theme).
+*   **UI/UX**: Interfaz profesional "ForensicAI" con Sidebar, Navbar y visualización de evidencias.
+
+---
+
+## 🧠 Semantic Expert (DeepSeek-R1)
+
+Detecta imágenes **visualmente perfectas pero semánticamente imposibles**.
+
+1.  **Modo DeepSeek-R1 (Reasoning)**:
+    *   Cliente: `services/deepseek_client.py` (Clase `DeepSeekClient`).
+    *   **Implementación Simplificada**: 
+        *   Usa `requests` estándar para máxima compatibilidad.
+        *   Construcción de prompts y parsing JSON ocurre dentro del experto (`modules/image_forensics/semantic_expert.py`).
+    *   **Métricas**:
+        *   `semantic_improbability_score`: ¿Es la escena plausible?
+        *   `context_collision_score`: ¿Hay elementos anacrónicos?
+        *   `composition_synthetic_score`: ¿Simetría/perfección artificial?
+
+2.  **Modo CLIP (Fallback)**:
+    *   Usa `calculate_probabilities` en `CLIPFeatureExtractor` para comparar embeddings imagen-texto si DeepSeek no está disponible.
+
+---
+
+## ⚗️ Fusion Engine V3.3 (User Calibrated)
+
+Motor de decisión calibrado para reducir falsos positivos en imágenes naturales (Anti-False-Positive).
+
+### 1. Pesos Ajustados
+Se da más peso a la evidencia geométrica y menos a la semántica para evitar sesgos de "perfección".
+
+| Experto | Peso V3.3 | Rationale |
+| :--- | :--- | :--- |
+| **multiLID** | **0.35** | Dimensionalidad es clave para fotos naturales. |
+| **UFD** | **0.25** | Clasificador visual (reducido por sensibilidad). |
+| **Semantic** | **0.40** | Razonamiento LLM (controlado por umbrales). |
+
+### 2. Bloqueos Hard (Thresholds)
+Reglas estrictas que anulan el promedio ponderado.
+
+*   **IA Confirmada**: Si `Semantic > 0.65`. (Antes 0.50, subido para evitar falsos positivos).
+*   **Real Confirmada**: Si `Semantic < 0.45` Y `UFD < 0.50`.
+
+### 3. Evidencia Robusta
+Cálculo diferencial para determinar la inclinación real vs. fake.
+
+*   **Evidencia IA**: `max(0, Semantic - 0.50) + max(0, UFD - 0.50)`
+*   **Evidencia Real**: `max(0, 0.50 - Semantic) + max(0, 0.50 - UFD)`
+*   **Boost Real**: Si `multiLID < 0.25`, se suma **+0.20** a la evidencia Real (Bokeh/Desenfoque natural).
+
+---
+
+## 📁 Estructura del Proyecto
+
+Actualizada tras la migración y refactorización:
 
 ```
 ProyectoForenseUIDE/
+├── backend/                  # Flask API
+│   ├── app.py               # App Factory
+│   ├── routes/              # API Endpoints
+│   │   ├── analyze.py       # Lógica principal
+│   │   └── semantic.py      # Debug/Test routes
+│   ├── services/            # Business Logic
+│   │   ├── forensics_pipeline.py  # Orchestrator (Updated Import)
+│   │   ├── deepseek_client.py     # Simple Client (Requests)
+│   │   └── __init__.py            # Export DeepSeekClient
+│   └── wsgi.py              # Gunicorn Entry Point
 │
-├── app.py                    # SOLO interfaz Gradio (controlador)
-├── config.py                 # Configuración centralizada (Pathlib)
-├── requirements.txt          # Dependencias
+├── frontend/                 # React App
+│   ├── src/
+│   │   ├── components/      # UI Components
+│   │   ├── services/        # API Consumer
+│   │   └── App.jsx          # Main Layout
+│   └── ...
 │
-├── core/                     # 🧠 CEREBRO - Gestión de modelos
-│   ├── __init__.py
-│   ├── model_manager.py      # Singleton con lazy loading
-│   └── processor.py          # Pre-procesamiento de datos
-│
-├── modules/                  # 🔍 DETECTORES - Lógica de negocio
-│   ├── __init__.py
-│   ├── image_forensics.py    # Ensamble GAN + Difusión
-│   ├── video_forensics.py    # XceptionNet deepfakes
-│   └── audio_forensics.py    # Voz sintética (HuggingFace)
-│
-├── utils/                    # 🛠️ UTILIDADES
-│   ├── __init__.py
-│   ├── plotting.py           # SVG gauges, gráficos temporales
-│   └── file_handlers.py      # Validadores + Reportes HTML
-│
-└── weights/                  # 📦 MODELOS
-    └── blur_jpg_prob0.1.pth  # Modelo GAN (Wang et al.)
+├── modules/                  # Core AI Modules
+│   ├── image_forensics/
+│   │   ├── fusion_engine.py      # V3.3 Logic here
+│   │   ├── semantic_expert.py    # Revised Prompting/Parsing
+│   │   ├── feature_extractor.py  # Added calculate_probabilities
+│   │   └── ...
+│   └── ...
 ```
 
 ---
 
-## 📦 Componentes Principales
+## 🔧 Configuración (`.env`)
 
-### 1. `config.py` - Configuración Centralizada
+```env
+# Flask
+FLASK_ENV=production
+FLASK_SECRET_KEY=...
 
-```python
-from pathlib import Path
+# DeepSeek / Ollama
+DEEPSEEK_ENABLED=true
+DEEPSEEK_API_URL=http://localhost:11434/api/generate
+DEEPSEEK_MODEL=deepseek-r1:7b
 
-# Rutas compatibles Windows/Unix
-BASE_DIR = Path(__file__).parent.resolve()
-WEIGHTS_DIR = BASE_DIR / "weights"
-MODEL_IMAGE_PATH = WEIGHTS_DIR / "blur_jpg_prob0.1.pth"
-
-# Modelos HuggingFace
-MODEL_DIFFUSION_NAME = "umm-maybe/AI-image-detector"
-MODEL_AUDIO_NAME = "MelodyMachine/Deepfake-audio-detection"
-
-# Límites
-MAX_IMAGE_SIZE_MB = 15
-MAX_VIDEO_SIZE_MB = 200
-MAX_AUDIO_SIZE_MB = 50
-
-# Umbrales de clasificación
-IMAGE_THRESHOLD = 50.0  # >50% = FAKE
-VIDEO_THRESHOLD = 50.0
-AUDIO_THRESHOLD = 50.0
+# CORS
+CORS_ORIGINS=http://localhost:5173,https://midominio.com
 ```
 
 ---
 
-### 2. `core/model_manager.py` - Gestión de Modelos
-
-```python
-class ModelManager:
-    """
-    Singleton con lazy loading para modelos.
-    - cargar_modelo_imagen_gan() -> ResNet50
-    - cargar_modelo_video() -> XceptionNet
-    """
-```
-
-**Características:**
-- **Lazy Loading**: Modelos solo se cargan cuando se necesitan
-- **Caché**: Una vez cargado, se reutiliza
-- **Error Handling**: Modo demo si falla carga
-
----
-
-### 3. `modules/image_forensics.py` - Detector de Imágenes
-
-```python
-class ImageForensicsDetector:
-    """
-    ENSAMBLE de dos modelos:
-    1. Experto GAN (ResNet50) - Detecta StyleGAN, FaceApp
-    2. Experto Difusión (ViT) - Detecta Midjourney, DALL-E, SD
-    
-    Decisión: MAX(prob_gan, prob_diffusion)
-    """
-    
-    def predict(self, image) -> Dict:
-        return {
-            "score": 85.5,
-            "verdict": "SINTÉTICO",
-            "detected_source": "Difusión (Midjourney/DALL-E)",
-            "gan_score": 30.2,
-            "diffusion_score": 85.5,
-        }
-```
-
----
-
-### 4. `modules/video_forensics.py` - Detector de Deepfakes
-
-```python
-class VideoForensicsDetector:
-    """
-    Análisis frame-by-frame de videos.
-    - Detección de rostros: Haar Cascade
-    - Clasificación: XceptionNet (FaceForensics++)
-    - Estrategia: Promedio Top-K (10% más sospechosos)
-    """
-```
-
----
-
-### 5. `modules/audio_forensics.py` - Detector de Audio Sintético
-
-```python
-class AudioForensicsDetector:
-    """
-    NUEVO en v2.0: Detección de voces de IA.
-    - Modelo: HuggingFace (Wav2Vec2-based)
-    - Detecta: ElevenLabs, RVC, TTS, clonación
-    - Preprocesamiento: librosa @ 16kHz
-    """
-```
-
-> ⚠️ **Primera ejecución**: Descarga modelo (~500MB) automáticamente con mensajes de progreso.
-
----
-
-### 6. `utils/file_handlers.py` - Validación y Reportes
-
-**Validadores:**
-```python
-validar_imagen(array) -> (bool, str)  # Dimensiones, formato
-validar_video(path) -> (bool, str)    # Tamaño, extensión
-validar_audio(path) -> (bool, str)    # Tamaño, formato
-```
-
-**Generadores de Reportes HTML:**
-```python
-generar_reporte_imagen(...)  # Con info de ensamble GAN+Difusión
-generar_reporte_video(...)   # Con timeline y frame sospechoso
-generar_reporte_audio(...)   # NUEVO: Para audio sintético
-generar_reporte_error(...)   # Errores con estilo
-```
-
----
-
-## 🔄 Flujos de Análisis
-
-### Flujo de Imagen (Ensamble)
-
-```
-Imagen → Validación → [GAN Detector] → prob_gan
-                    ↘ [Diffusion ViT] → prob_diff
-                                      ↘ MAX() → Resultado Final
-```
-
-### Flujo de Video
-
-```
-Video → Validación → Loop Frames → Detectar Rostro → XceptionNet → Predicciones[]
-                                                                 ↘ Top-K Average → Resultado
-```
-
-### Flujo de Audio (Nuevo)
-
-```
-Audio → Validación → librosa 16kHz → Feature Extractor → Wav2Vec2 → Clasificación
-```
-
----
-
-## 🧠 Modelos de IA
-
-| Modelo | Tipo | Detecta | Accuracy |
-|--------|------|---------|----------|
-| ResNet50 (Wang) | Imagen | GANs, ProGAN, StyleGAN | ~95% |
-| ViT (HuggingFace) | Imagen | DALL-E, Midjourney, SD | ~90% |
-| XceptionNet | Video | Face2Face, FaceSwap, DeepFake | ~92% |
-| Wav2Vec2-based | Audio | ElevenLabs, RVC, TTS | ~88% |
-
----
-
-## 📊 Interfaz Gradio (app.py)
-
-```python
-# TAB 1: Imágenes (GAN + Difusión)
-# TAB 2: Video (Deepfakes)  
-# TAB 3: Audio (Voz Sintética) - NUEVO
-# TAB 4: Acerca de
-```
-
-La interfaz ahora es **solo un controlador** que:
-1. Recibe archivos del usuario
-2. Delega a los detectores en `modules/`
-3. Muestra reportes generados por `utils/`
-
----
-
-## 🔧 Configuración Rápida
-
-### Cambiar Umbrales
-```python
-# config.py
-IMAGE_THRESHOLD = 60.0  # Más estricto
-VIDEO_THRESHOLD = 40.0  # Más permisivo
-```
-
-### Cambiar Modelos HuggingFace
-```python
-# config.py
-MODEL_DIFFUSION_NAME = "otro-modelo/detector"
-MODEL_AUDIO_NAME = "otro-modelo/audio-detect"
-```
-
-### Habilitar GPU
-```python
-# config.py
-DEVICE = "cuda"  # En lugar de "cpu"
-```
-
----
-
-## 🚀 Ejecución
-
-```powershell
-# Windows
-cd c:\Users\anper\Downloads\ProyectoForenseUIDE
-pip install -r requirements.txt
-python app.py
-
-# Abrir http://localhost:7860
-```
-
-### Primera Ejecución
-- Los modelos de HuggingFace se descargan automáticamente
-- Verás mensajes claros de progreso en la consola
-- La primera carga puede tomar 2-5 minutos
-
----
-
-## 🚨 Troubleshooting
-
-| Problema | Causa | Solución |
-|----------|-------|----------|
-| "Modelo no disponible" | Archivo .pth faltante | Verificar `weights/` |
-| Error descarga HuggingFace | Sin conexión | Verificar internet |
-| "Pocos rostros detectados" | Video sin caras | Usar video con rostros claros |
-| Encoding error (Windows) | UTF-8 | Ejecutar con `$env:PYTHONUTF8=1` |
-
----
-
-## 📁 Archivos Clave
-
-| Archivo | Propósito | Líneas |
-|---------|-----------|-------|
-| `app.py` | Solo interfaz Gradio | ~300 |
-| `config.py` | Configuración | ~90 |
-| `core/model_manager.py` | Gestión modelos | ~170 |
-| `modules/image_forensics.py` | Detector imágenes | ~230 |
-| `modules/video_forensics.py` | Detector videos | ~210 |
-| `modules/audio_forensics.py` | Detector audio | ~175 |
-| `utils/file_handlers.py` | Validación + HTML | ~350 |
-| `utils/plotting.py` | Gráficos SVG | ~160 |
-
----
-
-## 📚 Referencias
-
-- [CNNDetection Paper](https://arxiv.org/abs/1912.11035) - Wang et al.
-- [FaceForensics++](https://github.com/ondyari/FaceForensics)
-- [HuggingFace Transformers](https://huggingface.co/docs/transformers)
-- [Gradio Documentation](https://gradio.app/docs)
-
----
-
-## 🎓 Contexto Académico
-
-- **Universidad:** UIDE (Universidad Internacional del Ecuador)
-- **Equipo:** Anthony Perez, Bruno Ortega, Manuel Pacheco
-- **Objetivo:** Análisis forense digital con IA para tesis
-- **Versión:** 2.0 Clean Architecture (Enero 2026)
+## 🎓 Contexto del Proyecto
+*   **Organización**: UIDE (Universidad Internacional del Ecuador).
+*   **Objetivo**: Detección de contenido sintético con enfoque forense/legal.
+*   **Estado Actual**: Calibración V3.3 completada. Falsos positivos minimizados. Sistema listo para demo.

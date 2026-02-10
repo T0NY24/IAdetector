@@ -1,6 +1,6 @@
 """
 Modules - Módulos de análisis forense independientes
-UIDE Forense AI
+UIDE Forense AI v3.0
 """
 
 from .image_forensics import ImageForensicsDetector
