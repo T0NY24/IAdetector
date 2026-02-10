@@ -17,9 +17,10 @@ from transformers import BlipProcessor, BlipForConditionalGeneration
 from modules.image_forensics.feature_extractor import CLIPFeatureExtractor
 from modules.image_forensics.multilid_expert import MultiLIDExpert
 from modules.image_forensics.ufd_expert import UFDExpert
+from modules.image_forensics.fft_expert import FFTExpert
 from modules.image_forensics.semantic_expert import SemanticForensicsExpert
 from modules.image_forensics.fusion_engine import FusionEngine
-from modules.image_forensics.schemas import ForensicResult
+from modules.image_forensics.schemas import ExpertResult, ForensicResult
 from services.deepseek_client import DeepSeekClient
 import config
 
@@ -28,13 +29,13 @@ logger = logging.getLogger(__name__)
 
 class ForensicsPipeline:
     """
-    V10.0 Data-Driven Pipeline:
-    Numbers → DeepSeek → Binary Decision
+    V12.0 Data-Driven Pipeline with FFT:
+    Numbers + FFT → DeepSeek → Binary Decision
     """
     
     def __init__(self, deepseek_enabled=True):
-        """Initialize V10.0 pipeline."""
-        logger.info("[PIPELINE] Initializing UIDE Forense AI V10.0 (Data-Driven DeepSeek)...")
+        """Initialize V12.0 pipeline with FFT."""
+        logger.info("[PIPELINE] Initializing UIDE Forense AI V12.0 (Trinity Judgment)...")
         
         # Device
         self.device = "cuda" if torch.cuda.is_available() else "cpu"
@@ -50,6 +51,9 @@ class ForensicsPipeline:
         
         logger.info("[PIPELINE] Initializing UFD Expert...")
         self.ufd = UFDExpert(self.feature_extractor)
+        
+        logger.info("[PIPELINE] Initializing FFT Expert...")
+        self.fft = FFTExpert()
         
         # BLIP for image description
         logger.info("[PIPELINE] Loading BLIP Vision Model...")
@@ -94,14 +98,22 @@ class ForensicsPipeline:
             logger.info(f"  -> MultiLID Score: {multilid_result.score:.4f}")
             
             # UFD
-            logger.info("  [PERITO 2/2] UFD (Noise)...")
+            logger.info("  [PERITO 2/3] UFD (Noise)...")
             ufd_result = self.ufd.analyze(image_path)
             logger.info(f"  -> UFD Score: {ufd_result.score:.4f}")
+            
+            # FFT
+            logger.info("  [PERITO 3/3] FFT (Frequency)...")
+            from PIL import Image
+            pil_image = Image.open(image_path).convert('RGB')
+            fft_result = self.fft.analyze(pil_image)
+            logger.info(f"  -> FFT Score: {fft_result.score:.4f}")
             
             # Technical context for DeepSeek
             technical_context = {
                 "multilid": multilid_result.score,
-                "ufd": ufd_result.score
+                "ufd": ufd_result.score,
+                "fft": fft_result.score
             }
             
             # === ETAPA 2: GET IMAGE DESCRIPTION (Vision) ===

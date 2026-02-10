@@ -1,10 +1,14 @@
 import { useState } from 'react';
 import UploadImage from './components/UploadImage';
+import UploadVideo from './components/UploadVideo';
+import UploadAudio from './components/UploadAudio';
 import ResultCard from './components/ResultCard';
+import VideoResultCard from './components/VideoResultCard';
+import AudioResultCard from './components/AudioResultCard';
 import AnalysisProgress from './components/AnalysisProgress';
 import DeepSeekChat from './components/DeepSeekChat';
 import ResultsPanel from './components/ResultsPanel';
-import { analyzeImage } from './services/api';
+import { analyzeImage, analyzeVideo, analyzeAudio } from './services/api';
 import './App.css';
 
 function App() {
@@ -15,6 +19,10 @@ function App() {
     const [activeTab, setActiveTab] = useState('image');
     const [showResults, setShowResults] = useState(false);
     const [imagePreview, setImagePreview] = useState(null);
+    const [videoPreview, setVideoPreview] = useState(null);
+    const [audioPreview, setAudioPreview] = useState(null);
+    const [videoResult, setVideoResult] = useState(null);
+    const [audioResult, setAudioResult] = useState(null);
 
     const handleImageUpload = async (imageFile) => {
         setAnalyzing(true);
@@ -33,6 +41,46 @@ function App() {
             setShowResults(true); // Auto-open results panel
         } catch (err) {
             console.error('Analysis error:', err);
+            setError(err.message);
+        } finally {
+            setAnalyzing(false);
+        }
+    };
+
+    const handleVideoUpload = async (videoFile) => {
+        setAnalyzing(true);
+        setError(null);
+        setVideoResult(null);
+
+        const previewUrl = URL.createObjectURL(videoFile);
+        setVideoPreview(previewUrl);
+
+        try {
+            console.log('Analyzing video...', videoFile.name);
+            const response = await analyzeVideo(videoFile);
+            setVideoResult(response.result);
+        } catch (err) {
+            console.error('Video analysis error:', err);
+            setError(err.message);
+        } finally {
+            setAnalyzing(false);
+        }
+    };
+
+    const handleAudioUpload = async (audioFile) => {
+        setAnalyzing(true);
+        setError(null);
+        setAudioResult(null);
+
+        const previewUrl = URL.createObjectURL(audioFile);
+        setAudioPreview(previewUrl);
+
+        try {
+            console.log('Analyzing audio...', audioFile.name);
+            const response = await analyzeAudio(audioFile);
+            setAudioResult(response.result);
+        } catch (err) {
+            console.error('Audio analysis error:', err);
             setError(err.message);
         } finally {
             setAnalyzing(false);
@@ -237,11 +285,84 @@ function App() {
                         </>
                     )}
 
-                    {activeTab !== 'image' && (
-                        <div className="upload-container" style={{ opacity: 0.5 }}>
-                            <h3>Próximamente</h3>
-                            <p>El módulo de {activeTab === 'video' ? 'Video' : 'Audio'} estará disponible en la versión 3.1</p>
-                        </div>
+                    {activeTab === 'video' && (
+                        <>
+                            <div className="content-header">
+                                <h1 className="content-title">Detección de Deepfakes en Video</h1>
+                                <p className="content-description">
+                                    Detecte videos manipulados con deepfakes faciales usando XceptionNet entrenado en FaceForensics++.
+                                </p>
+                            </div>
+
+                            <div className="analysis-workflow">
+                                {!analyzing && (
+                                    <UploadVideo onUpload={handleVideoUpload} disabled={analyzing} />
+                                )}
+
+                                {analyzing && <AnalysisProgress />}
+
+                                {videoResult && !analyzing && (
+                                    <div className="results-wrapper">
+                                        <button
+                                            className="btn-upload"
+                                            onClick={() => { setVideoResult(null); setVideoPreview(null); }}
+                                            style={{ marginBottom: '2rem', background: 'var(--color-bg-tertiary)', border: '1px solid var(--color-border)' }}
+                                        >
+                                            ← Analizar otro video
+                                        </button>
+                                        <VideoResultCard result={videoResult} />
+                                    </div>
+                                )}
+
+                                {error && activeTab === 'video' && (
+                                    <div className="error-box" style={{ marginTop: '2rem', padding: '2rem', background: 'rgba(239,68,68,0.1)', borderRadius: '8px' }}>
+                                        <h3 style={{ color: 'var(--color-error)' }}>Error en el análisis</h3>
+                                        <p>{error}</p>
+                                        <button className="btn-upload" onClick={() => setError(null)}>Reintentar</button>
+                                    </div>
+                                )}
+                            </div>
+                        </>
+                    )}
+
+                    {activeTab === 'audio' && (
+                        <>
+                            <div className="content-header">
+                                <h1 className="content-title">Detección de Audio Sintético</h1>
+                                <p className="content-description">
+                                    Detecte voces generadas por IA (ElevenLabs, RVC, TTS) usando análisis espectral avanzado.
+                                </p>
+                            </div>
+
+                            <div className="analysis-workflow">
+                                {!analyzing && (
+                                    <UploadAudio onUpload={handleAudioUpload} disabled={analyzing} />
+                                )}
+
+                                {analyzing && <AnalysisProgress />}
+
+                                {audioResult && !analyzing && (
+                                    <div className="results-wrapper">
+                                        <button
+                                            className="btn-upload"
+                                            onClick={() => { setAudioResult(null); setAudioPreview(null); }}
+                                            style={{ marginBottom: '2rem', background: 'var(--color-bg-tertiary)', border: '1px solid var(--color-border)' }}
+                                        >
+                                            ← Analizar otro audio
+                                        </button>
+                                        <AudioResultCard result={audioResult} />
+                                    </div>
+                                )}
+
+                                {error && activeTab === 'audio' && (
+                                    <div className="error-box" style={{ marginTop: '2rem', padding: '2rem', background: 'rgba(239,68,68,0.1)', borderRadius: '8px' }}>
+                                        <h3 style={{ color: 'var(--color-error)' }}>Error en el análisis</h3>
+                                        <p>{error}</p>
+                                        <button className="btn-upload" onClick={() => setError(null)}>Reintentar</button>
+                                    </div>
+                                )}
+                            </div>
+                        </>
                     )}
 
                     {/* Results Overlay Panel */}

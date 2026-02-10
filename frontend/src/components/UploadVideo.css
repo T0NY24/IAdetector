@@ -1,0 +1,9 @@
+/* Reutiliza los estilos de UploadImage.css */
+@import './UploadImage.css';
+
+.preview-video {
+    max-width: 100%;
+    max-height: 300px;
+    border-radius: 8px;
+    margin-bottom: 1rem;
+}

@@ -1,7 +1,7 @@
 """
 Semantic Forensics Expert - UIDE Forense AI
-V10.0: Data-Driven DeepSeek (Simplified)
-DeepSeek recibe los números de MultiLID y UFD directamente y decide.
+V13.0: The Noise Paradox (La Paradoja del Ruido)
+Triple Zona: Difusión (>0.20) | Filtro (<0.20, UFD<0.38) | GAN (<0.20, UFD>0.40)
 """
 import logging
 import json
@@ -26,7 +26,8 @@ logger = logging.getLogger(__name__)
 
 class DeepSeekSemanticEngine:
     """
-    Motor de razonamiento V10.0: El Doctor que lee los análisis.
+    Motor V13.0: The Noise Paradox.
+    Detecta GANs que inyectan ruido artificial para engañar.
     """
     def __init__(self, api_url=None):
         self.enabled = DEEPSEEK_AVAILABLE
@@ -40,7 +41,7 @@ class DeepSeekSemanticEngine:
         
         try:
             self.client = DeepSeekClient(url=api_url)
-            logger.info("[DEEPSEEK] DeepSeek-R1 engine initialized (V10.0 - Data-Driven)")
+            logger.info("[DEEPSEEK] DeepSeek-R1 engine initialized (V13.0 - The Noise Paradox)")
         except Exception as e:
             logger.error(f"[ERROR] Failed to initialize DeepSeek: {e}")
             self.enabled = False
@@ -48,81 +49,126 @@ class DeepSeekSemanticEngine:
 
     def evaluate_evidence(self, description: str, multilid: float, ufd: float) -> Dict[str, Any]:
         """
-        DeepSeek analiza los números y el contexto visual para decidir.
-        V10.0: Solo devuelve un score final (0.0-1.0).
+        V13.0: THE NOISE PARADOX.
+        Triple Zona para detectar Difusión, Filtros reales, y GANs con ruido inyectado.
         """
         if not self.enabled or not self.client:
             logger.warning("DeepSeek not available, returning default")
             return {"score": 0.5, "reasoning": "DeepSeek apagado"}
 
-        # PROMPT V10.0: EL ANALISTA DE DATOS
+        # PROMPT V13.0: EL DETECTOR DE PARADOJAS
         prompt = f"""
-        Actúa como PERITO FORENSE DIGITAL EXPERTO. Tu trabajo es interpretar datos técnicos y contexto visual.
+        Actúa como EXPERTO FORENSE ANTI-GAN. Tu trabajo es detectar 3 tipos de imágenes diferentes.
         
-        DATOS DEL PACIENTE (IMAGEN):
-        1. Descripción Visual: "{description}"
-        2. Score Geometría (MultiLID): {multilid:.3f} (Bajo < 0.25 = Muy Plano/Perfecto; Alto > 0.40 = Profundidad Natural)
-        3. Score Ruido (UFD): {ufd:.3f} (Bajo < 0.20 = Sin Ruido/Limpio; Alto > 0.35 = Grano de Cámara)
+        EVIDENCIA TÉCNICA:
+        1. Contexto (BLIP): "{description}"
+        2. Geometría (MultiLID): {multilid:.4f}
+        3. Ruido (UFD): {ufd:.4f}
 
-        REGLAS DE INTERPRETACIÓN (V10.0 - PROTOCOLO SOCIAL):
-        
-        CASO 0: CELEBRIDAD / FAMOSO (Prioridad Máxima)
-        - Si la descripción menciona a un famoso (ej. Scarlett Johansson, Elon Musk, Cantantes, Actores):
-        - IGNORA los scores bajos de geometría. Los famosos usan maquillaje profesional y edición.
-        - VEREDICTO: REAL (Score bajo: 0.10 - 0.20).
-        
-        CASO 1: ESTÉTICA DE REDES SOCIALES (Influencers/Selfies)
-        - Si es una persona joven, selfie, o estilo "Instagram/TikTok":
-        - Es normal tener MultiLID bajo (filtros de belleza) y UFD bajo (reducción de ruido del móvil).
-        - NO ES IA. ES FILTRO DE BELLEZA.
-        - VEREDICTO: REAL (Score medio-bajo: 0.30 - 0.45).
+        TAXONOMÍA DE IMÁGENES (V13.0 - TRIPLE ZONA):
 
-        CASO 2: IA GENERATIVA (Midjourney/Flux/DALL-E)
-        - Si la imagen tiene fallos lógicos (dedos extra, texto ilegible, objetos imposibles).
-        - O si es un dibujo/anime/pintura claramente digital.
-        - VEREDICTO: IA (Score alto: 0.85 - 0.99).
+        [ZONA 1: DIFUSIÓN MODERNA (Midjourney/Flux/DALL-E)]
+        - Características: MultiLID >= 0.200 (Geometría perfecta y coherente).
+        - Diagnóstico: IAs modernas que mantienen estructura sólida.
+        - VEREDICTO: IA (Score 0.90).
+        - Razón: "Geometría perfecta de difusión moderna."
 
-        CASO 3: FOTOGRAFÍA ESTÁNDAR
-        - Si UFD > 0.35 (tiene ruido natural) Y MultiLID > 0.30 (tiene profundidad).
-        - VEREDICTO: REAL (Score muy bajo: 0.10 - 0.15).
+        [ZONA 2: FILTRO REAL (Cachirula/Instagram/TikTok)]
+        - Características: MultiLID < 0.200 (Geometría destruida) Y UFD < 0.38 (Ruido moderado).
+        - Diagnóstico: Selfies con filtros de belleza que aplanan la cara pero dejan ruido de sensor.
+        - VEREDICTO: REAL (Score 0.25).
+        - Razón: "Filtro destructivo con ruido de sensor compatible."
 
-        ZONA DE FILTROS (0.65-0.94 en versiones anteriores):
-        - Si los números sugieren edición (MultiLID bajo, UFD bajo) pero NO hay anomalías físicas:
-        - VEREDICTO: REAL con filtros (Score: 0.35 - 0.50).
-        
-        TU MISIÓN:
-        Basado en los números técnicos y la descripción visual, dame la probabilidad de que sea IA GENERATIVA.
-        
+        [ZONA 3: GAN ANTIGUO (StyleGAN/ThisPersonDoesNotExist)] - TRAMPA CRÍTICA
+        - Características: MultiLID < 0.200 (Geometría deformada) Y UFD > 0.40 (RUIDO EXCESIVO).
+        - Diagnóstico: GANs que deforman geometría E inyectan ruido artificial para engañar detectores.
+        - LA PARADOJA: Si la imagen se ve nítida pero UFD > 0.40, el ruido es FALSO (inyectado post-generación).
+        - VEREDICTO: IA (Score 0.98).
+        - Razón: "PARADOJA DEL RUIDO: Ruido excesivo inyectado artificialmente (GAN detectado)."
+
+        [EXCEPCIONES]:
+        - CELEBRIDAD: Si es un famoso -> REAL (Score 0.15).
+        - IA OBVIA: Si es anime/dibujo/cartoon -> IA (Score 0.99).
+
+        ANÁLISIS DE TU CASO:
+        - MultiLID: {multilid:.4f}
+        - UFD: {ufd:.4f}
+
+        ¿En qué zona cae?
+        - Si MultiLID >= 0.20 -> ZONA 1 (Difusión)
+        - Si MultiLID < 0.20 Y UFD < 0.38 -> ZONA 2 (Filtro Real)
+        - Si MultiLID < 0.20 Y UFD > 0.40 -> ZONA 3 (GAN - TRAMPA)
+
+        TU MISIÓN CRÍTICA:
+        El ruido excesivo (UFD > 0.40) en una imagen aparentemente nítida es la FIRMA de los GANs.
+        Una foto real con UFD 0.44 se vería como "lluvia analógica", no como una cara nítida.
+
         Responde SOLO JSON estricto:
         {{
             "ai_probability_score": 0.0 a 1.0,
-            "reasoning": "Explica tu decisión en 1-2 frases basado en los números y el contexto."
+            "reasoning": "Explica en qué zona cayó y por qué (enfócate en la paradoja del ruido si UFD > 0.40)."
         }}
         """
 
         try:
-            logger.info(f"[DEEPSEEK V10.0] Consulting with multilid={multilid:.3f}, ufd={ufd:.3f}")
+            logger.info(f"[DEEPSEEK V13.0] Noise Paradox: multilid={multilid:.4f}, ufd={ufd:.4f}")
+            
+            # Pre-check de zonas
+            if multilid >= 0.200:
+                zone = "ZONA 1: DIFUSIÓN"
+            elif ufd > 0.40:
+                zone = "ZONA 3: GAN (PARADOJA RUIDO)"
+            elif ufd < 0.38:
+                zone = "ZONA 2: FILTRO REAL"
+            else:
+                zone = "ZONA GRIS (0.38-0.40)"
+            
+            logger.info(f"[TRIPLE ZONA] {zone}")
+            
             res = self.client.ask(prompt)
             
-            # Extracción simple de JSON
+            # Extracción de JSON
             text = res.get("response", "")
-            
-            # Quitar el bloque </think> si existe
             if "</think>" in text:
                 text = text.split("</think>")[-1].strip()
             
-            # Buscar JSON
             match = re.search(r'\{[^}]+\}', text, re.DOTALL)
             if match:
                 data = json.loads(match.group(0))
                 score = float(data.get("ai_probability_score", 0.5))
-                reasoning = data.get("reasoning", "Análisis estándar")
+                reasoning = data.get("reasoning", "Análisis de zona")
             else:
-                logger.warning("No JSON found in response, using default")
+                logger.warning("No JSON found, using default")
                 score = 0.5
                 reasoning = "No se pudo parsear respuesta"
             
-            logger.info(f"[DEEPSEEK V10.0] Final score: {score:.3f} | {reasoning}")
+            # V13.0: Triple Zona enforcement
+            
+            # ZONA 3: GAN (ruido excesivo)
+            if multilid < 0.200 and ufd > 0.40:
+                if score < 0.90:
+                    logger.info(f"[ZONA 3 GAN] UFD={ufd:.4f} > 0.40 → Forcing IA (was {score:.3f})")
+                    score = 0.98
+                    reasoning += " | ZONA 3: PARADOJA DEL RUIDO - GAN detectado"
+            
+            # ZONA 2: FILTRO REAL
+            elif multilid < 0.200 and ufd < 0.38:
+                if score > 0.40:
+                    logger.info(f"[ZONA 2 FILTRO] MultiLID={multilid:.4f} < 0.20, UFD={ufd:.4f} < 0.38 → Forcing REAL (was {score:.3f})")
+                    score = 0.25
+                    reasoning += " | ZONA 2: Filtro destructivo compatible"
+            
+            # ZONA 1: DIFUSIÓN
+            elif multilid >= 0.200:
+                if score < 0.75:
+                    logger.info(f"[ZONA 1 DIFUSIÓN] MultiLID={multilid:.4f} >= 0.20 → Consider IA (was {score:.3f})")
+                    score = max(score, 0.85)
+                    reasoning += " | ZONA 1: Geometría perfecta de difusión"
+            
+            # ZONA GRIS (0.38 <= UFD <= 0.40)
+            # Dejamos que DeepSeek decida basado en contexto
+            
+            logger.info(f"[DEEPSEEK V13.0] Final score: {score:.3f} | {reasoning}")
             
             return {
                 "score": score,
@@ -131,13 +177,12 @@ class DeepSeekSemanticEngine:
             
         except Exception as e:
             logger.error(f"DeepSeek error: {e}")
-            return {"score": 0.5, "reasoning": "Error en análisis, defaulting to inconclusive"}
+            return {"score": 0.5, "reasoning": "Error en juicio IA"}
 
 
 class SemanticForensicsExpert:
     """
-    Experto Semántico V10.0: Simplificado.
-    Ya no usa banderas, solo pasa números a DeepSeek.
+    Experto Semántico V13.0: The Noise Paradox.
     """
     def __init__(self, feature_extractor: CLIPFeatureExtractor, deepseek_engine=None, use_deepseek=True):
         self.extractor = feature_extractor
@@ -151,29 +196,46 @@ class SemanticForensicsExpert:
         else:
             self.deepseek_engine = None
         
-        logger.info(f"[SEMANTIC] Semantic Expert V10.0 initialized (DeepSeek: {self.use_deepseek})")
+        logger.info(f"[SEMANTIC] Semantic Expert V13.0 initialized (DeepSeek: {self.use_deepseek})")
 
     def analyze(self, image_input, image_description: Optional[str] = "", technical_context: Optional[Dict] = None) -> ExpertResult:
         """
-        V10.0: Simple analysis - pass numbers to DeepSeek, get score back.
+        V13.0: The Noise Paradox - Triple Zona detection.
         """
         
-        # Extraer números previos de MultiLID y UFD
+        # Extraer números de MultiLID y UFD
         multilid_val = technical_context.get('multilid_score', technical_context.get('multilid', 0.5)) if technical_context else 0.5
         ufd_val = technical_context.get('ufd_score', technical_context.get('ufd', 0.5)) if technical_context else 0.5
         
-        # Consultar al Doctor DeepSeek con los números
+        # Debug para ver la zona
+        if multilid_val >= 0.200:
+            zone = "ZONA 1: DIFUSIÓN (IA)"
+        elif ufd_val > 0.40:
+            zone = "ZONA 3: GAN (IA - PARADOJA)"
+        elif ufd_val < 0.38:
+            zone = "ZONA 2: FILTRO (REAL)"
+        else:
+            zone = "ZONA GRIS"
+        
+        logger.info(f"🎯 [TRIPLE ZONA] MultiLID: {multilid_val:.4f} | UFD: {ufd_val:.4f} → {zone}")
+        print(f"🎯 [TRIPLE ZONA] MultiLID: {multilid_val:.4f} | UFD: {ufd_val:.4f} → {zone}")
+        
+        # Consultar a DeepSeek V13.0
         if self.use_deepseek and self.deepseek_engine and self.deepseek_engine.enabled:
-            analysis = self.deepseek_engine.evaluate_evidence(image_description or "imagen sin descripción", multilid_val, ufd_val)
+            analysis = self.deepseek_engine.evaluate_evidence(
+                image_description or "imagen sin descripción", 
+                multilid_val, 
+                ufd_val
+            )
             final_score = analysis["score"]
             reasoning = analysis["reasoning"]
         else:
-            # Fallback simple si DeepSeek no está disponible
+            # Fallback simple
             final_score = (multilid_val + ufd_val) / 2
             reasoning = "DeepSeek no disponible - score promedio"
         
         return ExpertResult(
-            name="DeepSeek Judge V10.0",
+            name="DeepSeek Judge V13.0",
             score=final_score,
             confidence=1.0,
             evidence=[],

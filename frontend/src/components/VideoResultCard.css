@@ -1,0 +1,30 @@
+/* Reutiliza los estilos de ResultCard.css */
+@import './ResultCard.css';
+
+.details-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+    gap: 1rem;
+    margin-top: 1.5rem;
+    padding: 1rem;
+    background: var(--color-bg-tertiary, #f9fafb);
+    border-radius: 8px;
+}
+
+.detail-item {
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+}
+
+.detail-label {
+    font-size: 0.875rem;
+    color: var(--color-text-secondary, #6b7280);
+    font-weight: 500;
+}
+
+.detail-value {
+    font-size: 1.25rem;
+    font-weight: 700;
+    color: var(--color-text-primary, #1f2937);
+}

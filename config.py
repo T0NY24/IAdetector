@@ -26,8 +26,12 @@ TESTING = False
 CORS_ORIGINS = os.getenv("CORS_ORIGINS", "http://localhost:3000,http://localhost:5173").split(",")
 
 # Upload limits
-MAX_CONTENT_LENGTH = 20 * 1024 * 1024  # 20MB
-ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg', 'webp', 'bmp'}
+MAX_CONTENT_LENGTH = 100 * 1024 * 1024  # 100MB (para soportar videos)
+ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg', 'webp', 'bmp'}  # Solo imágenes (legacy)
+ALLOWED_EXTENSIONS_IMAGE = {'png', 'jpg', 'jpeg', 'webp', 'bmp'}
+ALLOWED_EXTENSIONS_VIDEO = {'mp4', 'avi', 'mov', 'mkv'}
+ALLOWED_EXTENSIONS_AUDIO = {'mp3', 'wav', 'm4a', 'ogg', 'flac'}
+
 
 # ==========================================
 # 🖼️ Image Forensics Configuration
@@ -53,6 +57,27 @@ SEMANTIC_THRESHOLDS = {
     "composition_synthetic": 0.60,
     "overall_synthetic": 0.55,
 }
+
+# ==========================================
+# 🎥 Video Forensics Configuration
+# ==========================================
+SUPPORTED_VIDEO_FORMATS = {'.mp4', '.avi', '.mov', '.mkv'}
+MAX_VIDEO_SIZE_MB = 100  # 100MB máximo para videos
+MAX_VIDEO_DURATION_SECONDS = 120  # 2 minutos máximo
+VIDEO_SIZE = 299  # Tamaño de frame para XceptionNet (299x299)
+MODEL_VIDEO_NAME = 'xception'  # Modelo timm para detección de deepfakes
+VIDEO_FRAME_STRIDE = 30  # Analizar 1 frame cada 30
+MIN_FACES_REQUIRED = 5  # Mínimo de rostros para análisis confiable
+VIDEO_THRESHOLD = 50.0  # Umbral de detección de deepfake (0-100)
+
+# ==========================================
+# 🔊 Audio Forensics Configuration
+# ==========================================
+SUPPORTED_AUDIO_FORMATS = {'.mp3', '.wav', '.m4a', '.ogg', '.flac'}
+MAX_AUDIO_SIZE_MB = 20  # 20MB máximo
+AUDIO_SAMPLE_RATE = 16000  # Hz
+AUDIO_MAX_DURATION = 60  # 60 segundos máximo
+# Detección heurística basada en análisis espectral (sin modelo pesado)
 
 # ==========================================
 # 🤖 DeepSeek-R1 LLM Configuration

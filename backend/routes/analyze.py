@@ -62,7 +62,14 @@ def analyze_image():
             current_app.logger.info(f"[API] Procesando imagen: {filename}")
             result = pipeline.process(filepath)
 
-            # 5. Log final seguro (Sin emojis)
+            # 5. Guardar en base de datos
+            try:
+                from backend import database
+                database.insert_analysis(filename, 'IMAGE', result.to_dict())
+            except Exception as e:
+                logger.warning(f"Error guardando en DB: {e}")
+
+            # 6. Log final seguro (Sin emojis)
             processing_time = time.time() - start_time
             current_app.logger.info(f"[API] Respuesta: {result.verdict} ({processing_time:.2f}s)")
 

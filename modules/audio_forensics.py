@@ -29,62 +29,89 @@ class AudioForensicsDetector:
     """
 
     def __init__(self):
-        self.extractor = None
-        self.model = None
-        self._loaded = False
         self.device = torch.device(config.DEVICE)
-        
-        logger.info("🔊 AudioForensicsDetector inicializado")
+        logger.info("🔊 AudioForensicsDetector inicializado (Modo Heurístico)")
+        logger.info("   📊 Usando análisis espectral sin modelo pesado")
 
-    def _cargar_modelo(self):
-        """Carga el modelo de detección de audio desde HuggingFace."""
-        if self._loaded:
-            return
+    def _extract_spectral_features(self, audio_array, sr):
+        """
+        Extrae características espectrales del audio para detección heurística.
         
-        try:
-            from transformers import AutoModelForAudioClassification, AutoFeatureExtractor
-            
-            model_name = config.MODEL_AUDIO_NAME
-            
-            # ============================================
-            # MENSAJE CLARO DE DESCARGA
-            # ============================================
-            print("\n" + "="*60)
-            print("📥 DESCARGANDO MODELO DE DETECCIÓN DE AUDIO (HuggingFace)")
-            print(f"   Modelo: {model_name}")
-            print("   Esto puede tomar varios minutos la primera vez...")
-            print("   (El modelo se cachea para futuras ejecuciones)")
-            print("="*60 + "\n")
-            
-            logger.info(f"📥 Iniciando descarga del modelo de audio: {model_name}")
-            
-            # Cargar extractor de características
-            print("   [1/2] Descargando extractor de características...")
-            self.extractor = AutoFeatureExtractor.from_pretrained(model_name)
-            logger.info("✅ Extractor de audio cargado")
-            
-            # Cargar modelo
-            print("   [2/2] Descargando modelo de clasificación...")
-            self.model = AutoModelForAudioClassification.from_pretrained(model_name)
-            self.model.to(self.device)
-            self.model.eval()
-            
-            print("\n✅ Modelo de audio cargado exitosamente!\n")
-            logger.info("✅ Modelo de audio cargado exitosamente")
-            
-            self._loaded = True
-            
-        except ImportError as e:
-            logger.error("❌ transformers no instalado. Ejecuta: pip install transformers")
-            raise
-        except Exception as e:
-            logger.error(f"❌ Error cargando modelo de audio: {e}")
-            self._loaded = True  # Marcar como intentado
-            raise
+        Returns:
+            Dict con features y score de artificialidad (0-100)
+        """
+        import librosa
+        import numpy as np
+        
+        # 1. MFCCs (Mel-frequency cepstral coefficients)
+        mfccs = librosa.feature.mfcc(y=audio_array, sr=sr, n_mfcc=13)
+        mfcc_mean = np.mean(mfccs, axis=1)
+        mfcc_std = np.std(mfccs, axis=1)
+        
+        # 2. Zero Crossing Rate (voces sintéticas tienden a tener patrones diferentes)
+        zcr = librosa.feature.zero_crossing_rate(audio_array)[0]
+        zcr_mean = np.mean(zcr)
+        zcr_std = np.std(zcr)
+        
+        # 3. Spectral Contrast (diferencias entre picos y valles en espectro)
+        contrast = librosa.feature.spectral_contrast(y=audio_array, sr=sr)
+        contrast_mean = np.mean(contrast, axis=1)
+        
+        # 4. Spectral Rolloff (frecuencia donde 85% de energía está debajo)
+        rolloff = librosa.feature.spectral_rolloff(y=audio_array, sr=sr)[0]
+        rolloff_mean = np.mean(rolloff)
+        
+        # 5. Spectral Centroid (centro de masa del espectro)
+        centroid = librosa.feature.spectral_centroid(y=audio_array, sr=sr)[0]
+        centroid_mean = np.mean(centroid)
+        centroid_std = np.std(centroid)
+        
+        # HEURÍSTICAS PARA DETECCIÓN
+        synthetic_score = 0.0
+        reasons = []
+        
+        # Heurística 1: MFCCs muy uniformes (TTS tiene menos variación natural)
+        mfcc_uniformity = np.mean(mfcc_std)
+        if mfcc_uniformity < 15:  # Umbral empírico
+            synthetic_score += 25
+            reasons.append(f"MFCCs muy uniformes ({mfcc_uniformity:.1f})")
+        
+        # Heurística 2: Zero-crossing muy regular
+        if zcr_std < 0.02:  # Poca variación en ZCR
+            synthetic_score += 20
+            reasons.append(f"ZCR muy regular ({zcr_std:.3f})")
+        
+        # Heurística 3: Spectral contrast anormal (voces sintéticas tienen patrones diferentes)
+        contrast_score = np.mean(contrast_mean)
+        if contrast_score > 30 or contrast_score < 15:
+            synthetic_score += 20
+            reasons.append(f"Contraste espectral anómalo ({contrast_score:.1f})")
+        
+        # Heurística 4: Spectral centroid muy estable (menos prosody natural)
+        if centroid_std < 200:
+            synthetic_score += 20
+            reasons.append(f"Centroide muy estable ({centroid_std:.1f})")
+        
+        # Heurística 5: Rolloff anormal
+        if rolloff_mean > 4000 or rolloff_mean < 1500:
+            synthetic_score += 15
+            reasons.append(f"Rolloff anómalo ({rolloff_mean:.0f} Hz)")
+        
+        return {
+            'synthetic_score': min(synthetic_score, 100),
+            'reasons': reasons,
+            'features': {
+                'mfcc_uniformity': float(mfcc_uniformity),
+                'zcr_std': float(zcr_std),
+                'contrast_mean': float(contrast_score),
+                'centroid_std': float(centroid_std),
+                'rolloff_mean': float(rolloff_mean)
+            }
+        }
 
     def predict(self, audio_path: str) -> Dict[str, Any]:
         """
-        Analiza un archivo de audio para detectar si es sintético.
+        Analiza un archivo de audio para detectar si es sintético usando análisis espectral.
         
         Args:
             audio_path: Ruta al archivo de audio
@@ -95,18 +122,6 @@ class AudioForensicsDetector:
         logger.info(f"🔍 Iniciando análisis de audio: {audio_path}")
         
         try:
-            # Cargar modelo si es necesario
-            self._cargar_modelo()
-            
-            if self.model is None or self.extractor is None:
-                logger.warning("⚠️ Modelo de audio no disponible")
-                return {
-                    "score": 50.0,
-                    "verdict": "INDETERMINADO",
-                    "confidence": 0.0,
-                    "error": "Modelo no disponible",
-                }
-            
             # Preprocesar audio
             logger.info("   [1/2] Cargando y procesando audio...")
             audio_array, sr = preprocess_audio(audio_path, target_sr=config.AUDIO_SAMPLE_RATE)
@@ -117,45 +132,15 @@ class AudioForensicsDetector:
                 logger.info(f"   ⚠️ Audio truncado a {config.AUDIO_MAX_DURATION}s")
                 audio_array = audio_array[:max_samples]
             
-            # Extraer características
-            logger.info("   [2/2] Analizando con modelo de IA...")
-            inputs = self.extractor(
-                audio_array, 
-                sampling_rate=sr, 
-                return_tensors="pt", 
-                padding=True
-            )
-            inputs = {k: v.to(self.device) for k, v in inputs.items()}
+            # Extraer features espectrales y calcular score
+            logger.info("   [2/2] Analizando características espectrales...")
+            analysis = self._extract_spectral_features(audio_array, sr)
             
-            # Inferencia
-            with torch.no_grad():
-                logits = self.model(**inputs).logits
+            fake_prob = analysis['synthetic_score']
             
-            probs = torch.softmax(logits, dim=-1)
-            
-            # Determinar índice de "fake"
-            if hasattr(self.model.config, 'id2label'):
-                id2label = self.model.config.id2label
-                logger.debug(f"Labels del modelo: {id2label}")
-                
-                # Buscar índice de fake/synthetic
-                fake_idx = None
-                for idx, label in id2label.items():
-                    label_lower = label.lower()
-                    if any(kw in label_lower for kw in ['fake', 'spoof', 'synthetic', 'ai', 'cloned']):
-                        fake_idx = int(idx)
-                        break
-                
-                if fake_idx is None:
-                    # Asumir índice 1 es fake
-                    fake_idx = 1
-            else:
-                fake_idx = 1
-            
-            fake_prob = probs[0][fake_idx].item() * 100
-            
-            # Calcular confianza
-            confidence = abs(fake_prob - 50) * 2  # 0-100%
+            # Calcular confianza basada en cuántas heurísticas activadas
+            num_reasons = len(analysis['reasons'])
+            confidence = min(num_reasons * 20, 100)  # Más razones = más confianza
             
             # Determinar veredicto
             if fake_prob > 60:
@@ -171,9 +156,13 @@ class AudioForensicsDetector:
                 "confidence": confidence,
                 "duration_analyzed": len(audio_array) / sr,
                 "sample_rate": sr,
+                "features": analysis['features'],
+                "detection_reasons": analysis['reasons']
             }
             
             logger.info(f"✅ Análisis completado: {verdict} ({fake_prob:.2f}%)")
+            if analysis['reasons']:
+                logger.info(f"   📋 Razones: {', '.join(analysis['reasons'])}")
             
             return result
             
@@ -185,3 +174,4 @@ class AudioForensicsDetector:
                 "confidence": 0.0,
                 "error": str(e),
             }
+

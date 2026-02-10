@@ -58,6 +58,14 @@ def create_app(config_name='default'):
     # Crear directorios necesarios
     ensure_directories()
     
+    # Inicializar base de datos
+    from backend import database
+    try:
+        database.init_db()
+        app.logger.info("✅ Database initialized")
+    except Exception as e:
+        app.logger.error(f"❌ Database initialization failed: {e}")
+    
     # Registrar blueprints (rutas)
     register_blueprints(app)
     
@@ -130,6 +138,16 @@ def register_blueprints(app):
     app.register_blueprint(semantic_bp)
     
     app.register_blueprint(fusion.bp, url_prefix='/api')
+    
+    # Video and Audio routes
+    from routes.analyze_video import bp as video_bp
+    from routes.analyze_audio import bp as audio_bp
+    app.register_blueprint(video_bp, url_prefix='/api')
+    app.register_blueprint(audio_bp, url_prefix='/api')
+    
+    # History route
+    from routes.history import bp as history_bp
+    app.register_blueprint(history_bp, url_prefix='/api')
 
 
 def register_error_handlers(app):

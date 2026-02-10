@@ -137,3 +137,49 @@ export const checkHealth = async () => {
 
     return await response.json();
 };
+
+/**
+ * Analiza un video para detectar deepfakes.
+ * 
+ * @param {File} videoFile - Archivo de video
+ * @returns {Promise<Object>} - Resultado del análisis
+ */
+export const analyzeVideo = async (videoFile) => {
+    const formData = new FormData();
+    formData.append('video', videoFile);
+
+    const response = await fetch(`${API_BASE_URL}/analyze_video`, {
+        method: 'POST',
+        body: formData
+    });
+
+    if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.error || 'Video analysis failed');
+    }
+
+    return await response.json();
+};
+
+/**
+ * Analiza un archivo de audio para detectar si es sintético.
+ * 
+ * @param {File} audioFile - Archivo de audio
+ * @returns {Promise<Object>} - Resultado del análisis
+ */
+export const analyzeAudio = async (audioFile) => {
+    const formData = new FormData();
+    formData.append('audio', audioFile);
+
+    const response = await fetch(`${API_BASE_URL}/analyze_audio`, {
+        method: 'POST',
+        body: formData
+    });
+
+    if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.error || 'Audio analysis failed');
+    }
+
+    return await response.json();
+};

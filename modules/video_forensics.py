@@ -7,12 +7,11 @@ XceptionNet pre-entrenado en FaceForensics++.
 """
 
 import logging
-from typing import Dict, Any, List, Tuple, Optional, Generator
+from typing import Dict, Any, List, Tuple, Optional
 import cv2
 from PIL import Image
 
 import torch
-import gradio as gr
 
 import config
 from core.model_manager import get_model_manager
@@ -77,70 +76,41 @@ class VideoForensicsDetector:
             logger.error(f"Error analizando frame: {e}")
             return 50.0
 
-    def predict(
-        self, 
-        video_path: str, 
-        progress: Optional[gr.Progress] = None
-    ) -> Generator[Dict[str, Any], None, None]:
+    def predict(self, video_path: str) -> Dict[str, Any]:
         """
         Analiza un video para detectar deepfakes.
-        Función generadora que emite actualizaciones de estado.
         
         Args:
             video_path: Ruta al archivo de video
-            progress: Objeto Progress de Gradio (opcional)
             
-        Yields:
-            Diccionarios con estado del análisis
+        Returns:
+            Diccionario con resultado del análisis
         """
         logger.info(f"🎬 Iniciando análisis de video: {video_path}")
-        
-        # Estado inicial
-        yield {
-            "status": "starting",
-            "message": "🚀 Iniciando proceso...",
-            "report": "",
-            "timeline": None,
-            "culprit_frame": None,
-        }
         
         try:
             # Abrir video
             cap = cv2.VideoCapture(video_path)
             if not cap.isOpened():
-                yield {
-                    "status": "error",
-                    "message": "❌ Error abriendo video",
-                    "report": None,
-                    "timeline": None,
-                    "culprit_frame": None,
+                return {
+                    "error": "Error abriendo video",
+                    "is_deepfake": False,
+                    "probability": 0.0
                 }
-                return
             
             # Metadatos
             frames_totales = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
             fps = cap.get(cv2.CAP_PROP_FPS)
             duracion = frames_totales / fps if fps and fps > 0 else 0
             
-            yield {
-                "status": "processing",
-                "message": f"ℹ️ Video: {frames_totales} frames, {duracion:.1f}s",
-                "report": "",
-                "timeline": None,
-                "culprit_frame": None,
-            }
-            
             # Validar duración
             if duracion > config.MAX_VIDEO_DURATION_SECONDS:
                 cap.release()
-                yield {
-                    "status": "error",
-                    "message": f"⚠️ Video demasiado largo ({duracion:.1f}s)",
-                    "report": None,
-                    "timeline": None,
-                    "culprit_frame": None,
+                return {
+                    "error": f"Video demasiado largo ({duracion:.1f}s). Máximo: {config.MAX_VIDEO_DURATION_SECONDS}s",
+                    "is_deepfake": False,
+                    "probability": 0.0
                 }
-                return
             
             # Cargar detector de rostros
             face_cascade = self._cargar_detector_rostros()
@@ -149,27 +119,16 @@ class VideoForensicsDetector:
             predicciones: List[Tuple[int, float]] = []
             frames_con_rostro = 0
             max_fake_prob = 0.0
-            culprit_frame: Optional[Image.Image] = None
             
             # Configurar stride
             stride = config.VIDEO_FRAME_STRIDE
             if duracion > 60:
                 stride = 60
             
-            yield {
-                "status": "processing",
-                "message": f"🧠 Analizando (stride: {stride})...",
-                "report": "",
-                "timeline": None,
-                "culprit_frame": None,
-            }
+            logger.info(f"🧠 Analizando video (stride: {stride}, duración: {duracion:.1f}s)...")
             
             # Bucle de análisis
-            frame_indices = range(0, frames_totales, stride)
-            if progress:
-                frame_indices = progress.tqdm(frame_indices, desc="🔍 Analizando frames...")
-            
-            for i in frame_indices:
+            for i in range(0, frames_totales, stride):
                 cap.set(cv2.CAP_PROP_POS_FRAMES, i)
                 ret, frame = cap.read()
                 if not ret:
@@ -188,34 +147,20 @@ class VideoForensicsDetector:
                     
                     predicciones.append((i, prob_fake))
                     
-                    # Guardar frame más sospechoso
+                    # Actualizar máximo
                     if prob_fake > max_fake_prob:
                         max_fake_prob = prob_fake
-                        face_pil, _ = preprocess_video_frame(frame, (x, y, w, h))
-                        culprit_frame = face_pil
-                
-                # Actualización periódica
-                if i % (stride * 5) == 0 and not progress:
-                    yield {
-                        "status": "processing",
-                        "message": f"⏳ Frame {i}/{frames_totales} ({(i/frames_totales)*100:.0f}%)",
-                        "report": "",
-                        "timeline": None,
-                        "culprit_frame": None,
-                    }
             
             cap.release()
             
             # Verificar rostros suficientes
             if frames_con_rostro < config.MIN_FACES_REQUIRED:
-                yield {
-                    "status": "error",
-                    "message": f"⚠️ Pocos rostros detectados ({frames_con_rostro})",
-                    "report": None,
-                    "timeline": None,
-                    "culprit_frame": None,
+                return {
+                    "error": f"Pocos rostros detectados ({frames_con_rostro}). Mínimo requerido: {config.MIN_FACES_REQUIRED}",
+                    "is_deepfake": False,
+                    "probability": 0.0,
+                    "frames_analyzed": frames_con_rostro
                 }
-                return
             
             # Calcular promedio Top-K
             if predicciones:
@@ -232,24 +177,21 @@ class VideoForensicsDetector:
             
             logger.info(f"✅ Análisis completado: {'DEEPFAKE' if es_deepfake else 'REAL'} ({promedio_fake:.1f}%)")
             
-            yield {
-                "status": "complete",
-                "message": f"🏁 {'DEEPFAKE' if es_deepfake else 'REAL'} ({promedio_fake:.1f}%)",
+            return {
                 "is_deepfake": es_deepfake,
                 "probability": promedio_fake,
                 "frames_total": frames_totales,
                 "frames_analyzed": frames_con_rostro,
                 "duration": duracion,
                 "predictions": predicciones,
-                "culprit_frame": culprit_frame,
+                "max_probability": max_fake_prob,
+                "verdict": "DEEPFAKE" if es_deepfake else "REAL"
             }
             
         except Exception as e:
             logger.error(f"❌ Error en análisis de video: {e}", exc_info=True)
-            yield {
-                "status": "error",
-                "message": f"❌ Error: {str(e)}",
-                "report": None,
-                "timeline": None,
-                "culprit_frame": None,
+            return {
+                "error": str(e),
+                "is_deepfake": False,
+                "probability": 0.0
             }
