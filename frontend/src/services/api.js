@@ -32,6 +32,23 @@ export const analyzeImage = async (imageFile, useDeepseek = true) => {
 };
 
 /**
+ * Obtiene el historial de análisis.
+ *
+ * @param {number} limit - Límite de resultados (default: 20)
+ * @returns {Promise<Object>} - Historial de análisis
+ */
+export const getHistory = async (limit = 20) => {
+    const response = await fetch(`${API_BASE_URL}/history?limit=${limit}`);
+
+    if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.error || 'Failed to fetch history');
+    }
+
+    return await response.json();
+};
+
+/**
  * Análisis semántico con DeepSeek-R1.
  * 
  * @param {string} description - Descripción de la imagen

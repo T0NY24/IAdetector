@@ -1,9 +1,14 @@
+import { FileText } from 'lucide-react';
 import './ResultCard.css';
 
 function ResultCard({ result }) {
     if (!result) return null;
 
-    const { verdict, confidence, scores, evidence, processing_time } = result;
+    const { verdict, confidence, scores, evidence, processing_time, ai_probability } = result;
+
+    // Bugfix 0.0%: Map correctly ai_probability
+    const aiScore = ai_probability ?? (scores?.final_score || 0);
+    // const realScore = 100 - (aiScore * 100); // Calculated but unused in this view for now
 
     const isFake = verdict.includes('GENERADA') || verdict.includes('IA');
     const isReal = verdict.includes('REAL');
@@ -14,9 +19,7 @@ function ResultCard({ result }) {
             {/* Header */}
             <div className="result-header">
                 <h2>
-                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                        <path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z" />
-                    </svg>
+                    <FileText size={20} />
                     Informe Forense
                 </h2>
                 {processing_time && (
@@ -65,7 +68,7 @@ function ResultCard({ result }) {
                         {scores.Semantic !== undefined && (
                             <div className="score-row">
                                 <div className="score-info">
-                                    <span className="score-name">Análisis Semántico (DeepSeek)</span>
+                                    <span className="score-name">Análisis Semántico (Asistente Forense)</span>
                                     <span className="score-num">{(scores.Semantic * 100).toFixed(1)}%</span>
                                 </div>
                                 <div className="progress-track">
@@ -74,17 +77,15 @@ function ResultCard({ result }) {
                             </div>
                         )}
 
-                        {scores.final_score !== undefined && (
-                            <div className="score-row highlight">
-                                <div className="score-info">
-                                    <span className="score-name">Score Unificado</span>
-                                    <span className="score-num">{(scores.final_score * 100).toFixed(1)}%</span>
-                                </div>
-                                <div className="progress-track">
-                                    <div className="progress-fill" style={{ width: `${scores.final_score * 100}%` }}></div>
-                                </div>
+                        <div className="score-row highlight">
+                            <div className="score-info">
+                                <span className="score-name">Probabilidad IA (Unificada)</span>
+                                <span className="score-num">{(aiScore * 100).toFixed(1)}%</span>
                             </div>
-                        )}
+                            <div className="progress-track">
+                                <div className="progress-fill" style={{ width: `${aiScore * 100}%` }}></div>
+                            </div>
+                        </div>
                     </div>
                 </div>
 

@@ -1,3 +1,4 @@
+import { AlertTriangle, Bot, AlertCircle, User, Lightbulb } from 'lucide-react';
 import './AudioResultCard.css';
 
 /**
@@ -12,19 +13,22 @@ function AudioResultCard({ result }) {
 
     // Determinar color y estilo según resultado
     const getVerdictStyle = () => {
-        if (hasError) return { color: '#6b7280', bg: '#f9fafb', border: '#e5e7eb', emoji: '❌' };
-        if (verdict === 'AUDIO SINTÉTICO') return { color: '#dc2626', bg: '#fef2f2', border: '#fca5a5', emoji: '🤖' };
-        if (verdict === 'SOSPECHOSO') return { color: '#f59e0b', bg: '#fffbeb', border: '#fcd34d', emoji: '⚠️' };
-        return { color: '#16a34a', bg: '#f0fdf4', border: '#86efac', emoji: '👤' };
+        if (hasError) return { color: '#6b7280', bg: '#f9fafb', border: '#e5e7eb', Icon: AlertTriangle };
+        if (verdict === 'AUDIO SINTÉTICO') return { color: '#dc2626', bg: '#fef2f2', border: '#fca5a5', Icon: Bot };
+        if (verdict === 'SOSPECHOSO') return { color: '#f59e0b', bg: '#fffbeb', border: '#fcd34d', Icon: AlertCircle };
+        return { color: '#16a34a', bg: '#f0fdf4', border: '#86efac', Icon: User };
     };
 
     const style = getVerdictStyle();
+    const Icon = style.Icon;
 
     return (
         <div className="result-card">
             {/* Header con veredicto */}
             <div className="verdict-box" style={{ background: style.bg, borderColor: style.border }}>
-                <span className="verdict-emoji">{style.emoji}</span>
+                <div className="verdict-emoji">
+                    <Icon size={32} color={style.color} />
+                </div>
                 <div>
                     <h2 className="verdict-title" style={{ color: style.color }}>
                         {hasError ? 'ERROR' : verdict || 'INDETERMINADO'}
@@ -63,7 +67,10 @@ function AudioResultCard({ result }) {
             {/* Interpretación */}
             {!hasError && (
                 <div className="interpretation-box">
-                    <h3 className="interpretation-title">💡 Interpretación</h3>
+                    <h3 className="interpretation-title">
+                        <Lightbulb size={20} style={{ marginRight: '0.5rem' }} />
+                        Interpretación
+                    </h3>
                     <p className="interpretation-text">
                         {verdict === 'AUDIO SINTÉTICO'
                             ? `El análisis detectó patrones característicos de audio generado por IA (ElevenLabs, RVC, TTS, etc.). Score de síntesis: ${score.toFixed(0)}%.`
