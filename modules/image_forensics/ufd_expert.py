@@ -277,6 +277,9 @@ class UFDExpert:
             # Extraer features
             features = self.extractor.extract_features(image_input)
             
+            # Asegurar compatibilidad de tipos (CLIP suele ser float16 en GPU)
+            features = features.float()
+            
             # Clasificación
             with torch.no_grad():
                 logits = self._classifier(features)
