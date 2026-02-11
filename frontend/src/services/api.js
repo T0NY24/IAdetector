@@ -48,7 +48,7 @@ export const analyzeSemanticDeepseek = async (description) => {
 
     if (!response.ok) {
         const error = await response.json();
-        throw new Error(error.error || 'DeepSeek analysis failed');
+        throw new Error(error.error || 'Semantic analysis failed');
     }
 
     return await response.json();

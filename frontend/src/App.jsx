@@ -1,4 +1,12 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import {
+    Image as ImageIcon,
+    Video,
+    Mic,
+    Activity,
+    ShieldCheck,
+    Brain
+} from 'lucide-react';
 import UploadImage from './components/UploadImage';
 import UploadVideo from './components/UploadVideo';
 import UploadAudio from './components/UploadAudio';
@@ -6,7 +14,6 @@ import ResultCard from './components/ResultCard';
 import VideoResultCard from './components/VideoResultCard';
 import AudioResultCard from './components/AudioResultCard';
 import AnalysisProgress from './components/AnalysisProgress';
-import DeepSeekChat from './components/DeepSeekChat';
 import ResultsPanel from './components/ResultsPanel';
 import { analyzeImage, analyzeVideo, analyzeAudio } from './services/api';
 import './App.css';
@@ -23,6 +30,39 @@ function App() {
     const [audioPreview, setAudioPreview] = useState(null);
     const [videoResult, setVideoResult] = useState(null);
     const [audioResult, setAudioResult] = useState(null);
+    const [history, setHistory] = useState([]);
+
+    useEffect(() => {
+        fetchHistory();
+    }, [result]);
+
+    const fetchHistory = async () => {
+        try {
+            const res = await fetch('/api/history?limit=20');
+            const data = await res.json();
+            if (data.results) {
+                setHistory(data.results);
+            }
+        } catch (err) {
+            console.error("Error loading history:", err);
+        }
+    };
+
+    const loadHistoryItem = (item) => {
+        if (item.media_type === 'IMAGE') {
+            setResult(item.result);
+            setActiveTab('image');
+            setImagePreview(null); // No image preview for history items currently
+        } else if (item.media_type === 'VIDEO') {
+            setVideoResult(item.result);
+            setActiveTab('video');
+            setVideoPreview(null);
+        } else if (item.media_type === 'AUDIO') {
+            setAudioResult(item.result);
+            setActiveTab('audio');
+            setAudioPreview(null);
+        }
+    };
 
     const handleImageUpload = async (imageFile) => {
         setAnalyzing(true);
@@ -103,9 +143,6 @@ function App() {
                     </div>
                     <ul className="nav-menu">
                         <li><a href="#analisis">Análisis</a></li>
-                        <li><a href="#documentacion">Documentación</a></li>
-                        <li><a href="#api">API</a></li>
-                        <li><a href="#casos">Casos de Uso</a></li>
                     </ul>
                 </div>
             </nav>
@@ -120,32 +157,21 @@ function App() {
                                 className={`tab-button ${activeTab === 'image' ? 'active' : ''}`}
                                 onClick={() => setActiveTab('image')}
                             >
-                                <svg className="icon" viewBox="0 0 24 24">
-                                    <rect x="3" y="3" width="18" height="18" rx="2" ry="2" />
-                                    <circle cx="8.5" cy="8.5" r="1.5" />
-                                    <polyline points="21 15 16 10 5 21" />
-                                </svg>
+                                <ImageIcon size={20} className="icon" />
                                 Imágenes
                             </button>
                             <button
                                 className={`tab-button ${activeTab === 'video' ? 'active' : ''}`}
                                 onClick={() => setActiveTab('video')}
                             >
-                                <svg className="icon" viewBox="0 0 24 24">
-                                    <polygon points="23 7 16 12 23 17 23 7" />
-                                    <rect x="2" y="5" width="14" height="14" rx="2" ry="2" />
-                                </svg>
+                                <Video size={20} className="icon" />
                                 Videos
                             </button>
                             <button
                                 className={`tab-button ${activeTab === 'audio' ? 'active' : ''}`}
                                 onClick={() => setActiveTab('audio')}
                             >
-                                <svg className="icon" viewBox="0 0 24 24">
-                                    <path d="M9 18V5l12-2v13" />
-                                    <circle cx="6" cy="18" r="3" />
-                                    <circle cx="18" cy="16" r="3" />
-                                </svg>
+                                <Mic size={20} className="icon" />
                                 Audio
                             </button>
                         </div>
@@ -162,8 +188,48 @@ function App() {
                                     disabled={analyzing}
                                     className="toggle-checkbox"
                                 />
-                                <span>DeepSeek-R1 (Reasoning)</span>
+                                <span>Asistente Forense (Reasoning)</span>
                             </label>
+                        </div>
+                    </div>
+
+                    <div className="sidebar-section">
+                        <h3 className="sidebar-title">Historial Reciente</h3>
+                        <div className="history-list">
+                            {history.length === 0 ? (
+                                <p style={{color: 'var(--color-text-muted)', fontSize: '0.85rem', padding: '0 0.5rem'}}>
+                                    No hay análisis recientes.
+                                </p>
+                            ) : (
+                                history.map((item, index) => (
+                                    <div
+                                        key={index}
+                                        className="history-item"
+                                        onClick={() => loadHistoryItem(item)}
+                                        style={{
+                                            padding: '0.75rem',
+                                            marginBottom: '0.5rem',
+                                            background: 'var(--color-bg-tertiary)',
+                                            borderRadius: '6px',
+                                            cursor: 'pointer',
+                                            border: '1px solid var(--color-border)',
+                                            fontSize: '0.85rem'
+                                        }}
+                                    >
+                                        <div style={{display: 'flex', justifyContent: 'space-between', marginBottom: '4px'}}>
+                                            <span style={{fontWeight: '600', color: 'var(--color-text-primary)'}}>
+                                                {item.media_type === 'IMAGE' ? 'Imagen' : item.media_type}
+                                            </span>
+                                            <span style={{color: 'var(--color-text-muted)'}}>
+                                                {new Date(item.timestamp).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}
+                                            </span>
+                                        </div>
+                                        <div style={{color: item.result.verdict.includes('IA') ? 'var(--color-warning)' : 'var(--color-success)'}}>
+                                            {item.result.verdict}
+                                        </div>
+                                    </div>
+                                ))
+                            )}
                         </div>
                     </div>
 
@@ -189,7 +255,7 @@ function App() {
                             <div className="content-header">
                                 <h1 className="content-title">Análisis de Imágenes Generadas por IA</h1>
                                 <p className="content-description">
-                                    Detecte imágenes sintéticas generadas por modelos de difusión, GANs y otros sistemas mediante análisis de artefactos, inconsistencias estructurales y razonamiento semántico con DeepSeek-R1.
+                                    Detecte imágenes sintéticas generadas por modelos de difusión, GANs y otros sistemas mediante análisis de artefactos, inconsistencias estructurales y razonamiento semántico con Asistente Forense.
                                 </p>
                             </div>
 
@@ -221,7 +287,7 @@ function App() {
                                                 Ver Análisis Detallado
                                             </button>
                                         </div>
-                                        <ResultCard result={result} />
+                                        <ResultCard result={result} imagePreview={imagePreview} />
                                     </div>
                                 )}
 
@@ -238,29 +304,19 @@ function App() {
                             {/* Features Grid (Initial State) */}
                             {!result && !analyzing && (
                                 <>
-                                    <div style={{ marginTop: '3rem', borderTop: '1px solid var(--color-border)' }}>
-                                        <DeepSeekChat />
-                                    </div>
-
-                                    <div className="features-grid">
+                                    <div className="features-grid" style={{ marginTop: '3rem', borderTop: '1px solid var(--color-border)', paddingTop: '2rem' }}>
                                         <div className="feature-card">
                                             <div className="feature-icon">
-                                                <svg viewBox="0 0 24 24">
-                                                    <circle cx="12" cy="12" r="10" />
-                                                    <line x1="12" y1="16" x2="12" y2="12" />
-                                                    <line x1="12" y1="8" x2="12.01" y2="8" />
-                                                </svg>
+                                                <Brain size={32} color="var(--color-accent)" />
                                             </div>
                                             <h3 className="feature-title">Razonamiento Semántico</h3>
                                             <p className="feature-description">
-                                                DeepSeek-R1 analiza la plausibilidad de la escena, buscando inconsistencias semánticas que los modelos de píxeles ignoran.
+                                                Asistente Forense analiza la plausibilidad de la escena, buscando inconsistencias semánticas que los modelos de píxeles ignoran.
                                             </p>
                                         </div>
                                         <div className="feature-card">
                                             <div className="feature-icon">
-                                                <svg viewBox="0 0 24 24">
-                                                    <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z" />
-                                                </svg>
+                                                <Activity size={32} color="var(--color-accent)" />
                                             </div>
                                             <h3 className="feature-title">Fusión de Expertos</h3>
                                             <p className="feature-description">
@@ -269,10 +325,7 @@ function App() {
                                         </div>
                                         <div className="feature-card">
                                             <div className="feature-icon">
-                                                <svg viewBox="0 0 24 24">
-                                                    <circle cx="12" cy="12" r="3"></circle>
-                                                    <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path>
-                                                </svg>
+                                                <ShieldCheck size={32} color="var(--color-accent)" />
                                             </div>
                                             <h3 className="feature-title">Procesamiento Local</h3>
                                             <p className="feature-description">
