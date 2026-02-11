@@ -1,10 +1,18 @@
 import './ResultCard.css';
+import { Activity, FileText, BarChart2 } from 'lucide-react';
 
 function ResultCard({ result }) {
     if (!result) return null;
 
-    const { verdict, confidence, scores, evidence, processing_time } = result;
+    // Destructure properties, including ai_probability which might come directly from backend
+    const { verdict, confidence, scores, evidence, processing_time, ai_probability } = result;
 
+    // Calculate probabilities
+    // If ai_probability is present, use it. Otherwise fall back to scores.fake_evidence or 0.
+    const aiScore = ai_probability !== undefined ? ai_probability : (scores?.fake_evidence || 0);
+    const realScore = 1.0 - aiScore;
+
+    // Determine verdict class
     const isFake = verdict.includes('GENERADA') || verdict.includes('IA');
     const isReal = verdict.includes('REAL');
     const verdictClass = isFake ? 'verdict-fake' : isReal ? 'verdict-real' : 'verdict-inconclusive';
@@ -14,9 +22,7 @@ function ResultCard({ result }) {
             {/* Header */}
             <div className="result-header">
                 <h2>
-                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                        <path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z" />
-                    </svg>
+                    <Activity size={20} />
                     Informe Forense
                 </h2>
                 {processing_time && (
@@ -36,9 +42,34 @@ function ResultCard({ result }) {
             <div className="details-grid">
                 {/* Columna de Scores */}
                 <div className="scores-column">
-                    <h3>Métricas de Detección</h3>
+                    <h3>
+                        <BarChart2 size={18} />
+                        Métricas de Detección
+                    </h3>
                     <div className="scores-list">
-                        {scores.multiLID !== undefined && (
+                        {/* Display AI Probability from backend if available directly, or calculated */}
+                        <div className="score-row highlight">
+                            <div className="score-info">
+                                <span className="score-name">Probabilidad IA</span>
+                                <span className="score-num">{(aiScore * 100).toFixed(1)}%</span>
+                            </div>
+                            <div className="progress-track">
+                                <div className="progress-fill" style={{ width: `${aiScore * 100}%`, background: 'var(--color-error)' }}></div>
+                            </div>
+                        </div>
+
+                        <div className="score-row">
+                            <div className="score-info">
+                                <span className="score-name">Probabilidad Real</span>
+                                <span className="score-num">{(realScore * 100).toFixed(1)}%</span>
+                            </div>
+                            <div className="progress-track">
+                                <div className="progress-fill" style={{ width: `${realScore * 100}%`, background: 'var(--color-success)' }}></div>
+                            </div>
+                        </div>
+
+                        {/* Additional granular scores if available */}
+                        {scores?.multiLID !== undefined && (
                             <div className="score-row">
                                 <div className="score-info">
                                     <span className="score-name">Análisis Dimensional (multiLID)</span>
@@ -50,7 +81,7 @@ function ResultCard({ result }) {
                             </div>
                         )}
 
-                        {scores.UFD !== undefined && (
+                        {scores?.UFD !== undefined && (
                             <div className="score-row">
                                 <div className="score-info">
                                     <span className="score-name">Detector Universal (UFD)</span>
@@ -62,26 +93,14 @@ function ResultCard({ result }) {
                             </div>
                         )}
 
-                        {scores.Semantic !== undefined && (
+                        {scores?.Semantic !== undefined && (
                             <div className="score-row">
                                 <div className="score-info">
-                                    <span className="score-name">Análisis Semántico (DeepSeek)</span>
+                                    <span className="score-name">Análisis Semántico</span>
                                     <span className="score-num">{(scores.Semantic * 100).toFixed(1)}%</span>
                                 </div>
                                 <div className="progress-track">
-                                    <div className="progress-fill" style={{ width: `${scores.Semantic * 100}%`, backgroundColor: 'var(--color-success)' }}></div>
-                                </div>
-                            </div>
-                        )}
-
-                        {scores.final_score !== undefined && (
-                            <div className="score-row highlight">
-                                <div className="score-info">
-                                    <span className="score-name">Score Unificado</span>
-                                    <span className="score-num">{(scores.final_score * 100).toFixed(1)}%</span>
-                                </div>
-                                <div className="progress-track">
-                                    <div className="progress-fill" style={{ width: `${scores.final_score * 100}%` }}></div>
+                                    <div className="progress-fill" style={{ width: `${scores.Semantic * 100}%`, backgroundColor: 'var(--color-accent)' }}></div>
                                 </div>
                             </div>
                         )}
@@ -91,7 +110,10 @@ function ResultCard({ result }) {
                 {/* Columna de Evidencias */}
                 {evidence && evidence.length > 0 && (
                     <div className="evidence-column">
-                        <h3>Evidencia Técnica</h3>
+                        <h3>
+                            <FileText size={18} />
+                            Evidencia Técnica
+                        </h3>
                         <div className="evidence-list">
                             {evidence.map((item, index) => (
                                 <div key={index} className="evidence-item">

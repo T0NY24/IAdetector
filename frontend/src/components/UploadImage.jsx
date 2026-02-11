@@ -1,4 +1,5 @@
 import { useState, useRef } from 'react';
+import { UploadCloud } from 'lucide-react';
 import './UploadImage.css';
 
 /**
@@ -76,13 +77,11 @@ function UploadImage({ onUpload, disabled }) {
                 </div>
             ) : (
                 <>
-                    <svg className="upload-icon" viewBox="0 0 24 24">
-                        <rect x="3" y="3" width="18" height="18" rx="2" ry="2" />
-                        <circle cx="8.5" cy="8.5" r="1.5" />
-                        <polyline points="21 15 16 10 5 21" />
-                    </svg>
-                    <h3 class="upload-title">Cargar imagen para análisis</h3>
-                    <p class="upload-subtitle">Arrastre un archivo o haga clic para seleccionar</p>
+                    <div className="upload-icon-wrapper">
+                         <UploadCloud size={48} color="var(--color-accent)" />
+                    </div>
+                    <h3 className="upload-title">Cargar imagen para análisis</h3>
+                    <p className="upload-subtitle">Arrastre un archivo o haga clic para seleccionar</p>
                     <button className="btn-upload" type="button">Seleccionar archivo</button>
                     <div className="upload-formats">
                         <span className="format-badge">PNG</span>

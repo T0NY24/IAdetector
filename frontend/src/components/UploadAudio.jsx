@@ -1,4 +1,5 @@
 import { useState, useRef } from 'react';
+import { Music } from 'lucide-react';
 import './UploadAudio.css';
 
 /**
@@ -76,11 +77,9 @@ function UploadAudio({ onUpload, disabled }) {
                 </div>
             ) : (
                 <>
-                    <svg className="upload-icon" viewBox="0 0 24 24">
-                        <path d="M9 18V5l12-2v13" />
-                        <circle cx="6" cy="18" r="3" />
-                        <circle cx="18" cy="16" r="3" />
-                    </svg>
+                    <div className="upload-icon-wrapper">
+                        <Music size={48} color="var(--color-accent)" />
+                    </div>
                     <h3 className="upload-title">Cargar audio para análisis</h3>
                     <p className="upload-subtitle">Arrastre un archivo o haga clic para seleccionar</p>
                     <button className="btn-upload" type="button">Seleccionar archivo</button>

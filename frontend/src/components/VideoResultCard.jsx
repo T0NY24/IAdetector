@@ -1,3 +1,4 @@
+import { AlertCircle, AlertTriangle, CheckCircle, Lightbulb } from 'lucide-react';
 import './VideoResultCard.css';
 
 /**
@@ -12,9 +13,9 @@ function VideoResultCard({ result }) {
 
     // Determinar color y estilo según resultado
     const getVerdictStyle = () => {
-        if (hasError) return { color: '#6b7280', bg: '#f9fafb', border: '#e5e7eb', emoji: '❌' };
-        if (isDeepfake) return { color: '#dc2626', bg: '#fef2f2', border: '#fca5a5', emoji: '🚨' };
-        return { color: '#16a34a', bg: '#f0fdf4', border: '#86efac', emoji: '✅' };
+        if (hasError) return { color: '#6b7280', bg: '#f9fafb', border: '#e5e7eb', icon: <AlertCircle size={24} color="#6b7280" /> };
+        if (isDeepfake) return { color: '#dc2626', bg: '#fef2f2', border: '#fca5a5', icon: <AlertTriangle size={24} color="#dc2626" /> };
+        return { color: '#16a34a', bg: '#f0fdf4', border: '#86efac', icon: <CheckCircle size={24} color="#16a34a" /> };
     };
 
     const style = getVerdictStyle();
@@ -23,7 +24,7 @@ function VideoResultCard({ result }) {
         <div className="result-card">
             {/* Header con veredicto */}
             <div className="verdict-box" style={{ background: style.bg, borderColor: style.border }}>
-                <span className="verdict-emoji">{style.emoji}</span>
+                <span className="verdict-icon">{style.icon}</span>
                 <div>
                     <h2 className="verdict-title" style={{ color: style.color }}>
                         {hasError ? 'ERROR' : result.verdict || (isDeepfake ? 'DEEPFAKE' : 'REAL')}
@@ -62,7 +63,10 @@ function VideoResultCard({ result }) {
             {/* Interpretación */}
             {!hasError && (
                 <div className="interpretation-box">
-                    <h3 className="interpretation-title">💡 Interpretación</h3>
+                    <h3 className="interpretation-title">
+                        <Lightbulb size={18} style={{ marginRight: '8px' }} />
+                        Interpretación
+                    </h3>
                     <p className="interpretation-text">
                         {isDeepfake
                             ? `El análisis detectó anomalías faciales consistentes con manipulación por IA. El modelo XceptionNet identificó patrones de deepfake en ${probability.toFixed(0)}% de los frames analizados.`

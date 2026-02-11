@@ -1,4 +1,5 @@
 import { useState, useRef } from 'react';
+import { FileVideo } from 'lucide-react';
 import './UploadVideo.css';
 
 /**
@@ -76,10 +77,9 @@ function UploadVideo({ onUpload, disabled }) {
                 </div>
             ) : (
                 <>
-                    <svg className="upload-icon" viewBox="0 0 24 24">
-                        <polygon points="23 7 16 12 23 17 23 7" />
-                        <rect x="2" y="5" width="14" height="14" rx="2" ry="2" />
-                    </svg>
+                    <div className="upload-icon-wrapper">
+                        <FileVideo size={48} color="var(--color-accent)" />
+                    </div>
                     <h3 className="upload-title">Cargar video para análisis</h3>
                     <p className="upload-subtitle">Arrastre un archivo o haga clic para seleccionar</p>
                     <button className="btn-upload" type="button">Seleccionar archivo</button>

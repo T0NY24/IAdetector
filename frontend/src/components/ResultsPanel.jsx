@@ -1,5 +1,6 @@
 
 import React, { useState, useEffect, useRef } from 'react';
+import { X, User, Bot, Send, HelpCircle } from 'lucide-react';
 import '../App.css';
 
 const ResultsPanel = ({ isOpen, onClose, result, imagePreview }) => {
@@ -82,17 +83,14 @@ const ResultsPanel = ({ isOpen, onClose, result, imagePreview }) => {
                 <div className="results-main">
                     <div className="results-header">
                         <div>
-                            <h2 class="results-title">Resultados del Análisis</h2>
+                            <h2 className="results-title">Resultados del Análisis</h2>
                             <div className={`analysis-status`}>
                                 <span className={`status-indicator ${getStatusColor()}`}></span>
                                 <span>{result.verdict}</span>
                             </div>
                         </div>
                         <button className="close-button" onClick={onClose}>
-                            <svg viewBox="0 0 24 24" width="24" height="24">
-                                <line x1="18" y1="6" x2="6" y2="18" stroke="currentColor" strokeWidth="2" />
-                                <line x1="6" y1="6" x2="18" y2="18" stroke="currentColor" strokeWidth="2" />
-                            </svg>
+                            <X size={24} />
                         </button>
                     </div>
 
@@ -107,8 +105,8 @@ const ResultsPanel = ({ isOpen, onClose, result, imagePreview }) => {
                     <div className="metrics-grid">
                         <div className="metric-card">
                             <div className="metric-label">Probabilidad IA</div>
-                            <div className={`metric-value ${result.scores?.fake_evidence > 0.5 ? 'high' : 'low'}`}>
-                                {((result.scores?.fake_evidence || 0) * 100).toFixed(1)}%
+                            <div className={`metric-value ${(result.ai_probability !== undefined ? result.ai_probability : (result.scores?.fake_evidence || 0)) > 0.5 ? 'high' : 'low'}`}>
+                                {((result.ai_probability !== undefined ? result.ai_probability : (result.scores?.fake_evidence || 0)) * 100).toFixed(1)}%
                             </div>
                             <div className="metric-description">Evidencia de generación sintética</div>
                         </div>
@@ -121,8 +119,8 @@ const ResultsPanel = ({ isOpen, onClose, result, imagePreview }) => {
                         </div>
                         <div className="metric-card">
                             <div className="metric-label">Probabilidad Real</div>
-                            <div className={`metric-value ${result.scores?.real_evidence > 0.5 ? 'low' : 'mid'}`}>
-                                {((result.scores?.real_evidence || 0) * 100).toFixed(1)}%
+                            <div className={`metric-value ${(1.0 - (result.ai_probability !== undefined ? result.ai_probability : (result.scores?.fake_evidence || 0))) > 0.5 ? 'low' : 'mid'}`}>
+                                {((1.0 - (result.ai_probability !== undefined ? result.ai_probability : (result.scores?.fake_evidence || 0))) * 100).toFixed(1)}%
                             </div>
                             <div className="metric-description">Evidencia de fotografía auténtica</div>
                         </div>
@@ -150,13 +148,9 @@ const ResultsPanel = ({ isOpen, onClose, result, imagePreview }) => {
                             <div key={msg.id} className={`message ${msg.isUser ? 'user' : 'assistant'}`}>
                                 <div className={`message-avatar ${msg.isUser ? 'user' : 'assistant'}`}>
                                     {msg.isUser ? (
-                                        <svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" fill="none" strokeWidth="2">
-                                            <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" /><circle cx="12" cy="7" r="4" />
-                                        </svg>
+                                        <User size={16} />
                                     ) : (
-                                        <svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" fill="none" strokeWidth="2">
-                                            <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
-                                        </svg>
+                                        <Bot size={16} />
                                     )}
                                 </div>
                                 <div className="message-text">{msg.text}</div>
@@ -200,10 +194,7 @@ const ResultsPanel = ({ isOpen, onClose, result, imagePreview }) => {
                                 onClick={() => sendMessage()}
                                 disabled={isLoading || !inputMessage.trim()}
                             >
-                                <svg viewBox="0 0 24 24" width="18" height="18" stroke="currentColor" fill="none" strokeWidth="2">
-                                    <line x1="22" y1="2" x2="11" y2="13" />
-                                    <polygon points="22 2 15 22 11 13 2 9 22 2" />
-                                </svg>
+                                <Send size={18} />
                             </button>
                         </div>
                     </div>
